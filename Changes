@@ -1,6 +1,9 @@
-$Id: Changes,v 1.54 2001/08/15 22:11:14 btrott Exp $
+$Id: Changes,v 1.55 2001/08/16 01:04:56 btrott Exp $
 
 Revision history for Crypt::OpenPGP
+
+0.16  2001.08.15
+    - Took stupid extraneous files out of lib. Ick.
 
 0.15  2001.08.15
     - Added bin/pgplet as an example of Crypt::OpenPGP usage.

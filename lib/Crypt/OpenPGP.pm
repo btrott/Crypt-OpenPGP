@@ -1,10 +1,10 @@
-# $Id: OpenPGP.pm,v 1.68 2001/08/15 22:11:15 btrott Exp $
+# $Id: OpenPGP.pm,v 1.69 2001/08/16 01:04:57 btrott Exp $
 
 package Crypt::OpenPGP;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.15';
+$VERSION = '0.16';
 
 use Crypt::OpenPGP::Constants qw( DEFAULT_CIPHER );
 use Crypt::OpenPGP::KeyRing;
