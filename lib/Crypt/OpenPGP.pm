@@ -1,10 +1,10 @@
-# $Id: OpenPGP.pm,v 1.78 2002/01/29 02:32:54 btrott Exp $
+# $Id: OpenPGP.pm,v 1.83 2002/02/27 06:08:09 btrott Exp $
 
 package Crypt::OpenPGP;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.18';
+$VERSION = '1.00';
 
 use Crypt::OpenPGP::Constants qw( DEFAULT_CIPHER );
 use Crypt::OpenPGP::KeyRing;
@@ -278,6 +278,7 @@ sub encrypt {
                          Data       => $data,
                          KeyID      => $param{SignKeyID},
                          Compat     => $param{Compat},
+                         Armour     => 0,
                          Passphrase => $param{SignPassphrase},
                          PassphraseCallback => $param{SignPassphraseCallback},
                   )
@@ -353,7 +354,13 @@ sub encrypt {
     elsif (my $pass = $param{Passphrase}) {
         require Crypt::OpenPGP::SKSessionKey;
         require Crypt::OpenPGP::S2k;
-        my $s2k = Crypt::OpenPGP::S2k->new('Salt_Iter');
+        my $s2k;
+        if ($param{Compat} && $param{Compat} eq 'PGP2') {
+            $s2k = Crypt::OpenPGP::S2k->new('Simple');
+            $s2k->{hash} = Crypt::OpenPGP::Digest->new('MD5');
+        } else {
+            $s2k = Crypt::OpenPGP::S2k->new('Salt_Iter');
+        }
         my $keysize = Crypt::OpenPGP::Cipher->new($sym_alg)->keysize;
         $key_data = $s2k->generate($pass, $keysize);
         push @sym_keys, Crypt::OpenPGP::SKSessionKey->new(
@@ -372,7 +379,10 @@ sub encrypt {
                         Data   => $ptdata,
                         Cipher => $sym_alg,
                   );
-    my $enc_data = Crypt::OpenPGP::PacketFactory->save(@sym_keys, $enc);
+    my $enc_data = Crypt::OpenPGP::PacketFactory->save(
+        $param{Passphrase} && $param{Compat} && $param{Compat} eq 'PGP2' ?
+        $enc : (@sym_keys, $enc)
+    );
     if ($param{Armour}) {
         require Crypt::OpenPGP::Armour;
         $enc_data = Crypt::OpenPGP::Armour->armour(
@@ -436,8 +446,12 @@ sub decrypt {
     } 
     elsif (ref($pieces[0]) eq 'Crypt::OpenPGP::SKSessionKey') {
         my $sym_key = shift @pieces;
-        my $pass = $param{Passphrase} or
-            return $pgp->error("Need passphrase to decrypt session key");
+        my $pass = $param{Passphrase};
+        if (!defined $pass && (my $cb = $param{PassphraseCallback})) {
+            $pass = $cb->();
+        }
+        return $pgp->error("Need passphrase to decrypt session key")
+            unless $pass;
         ($key, $alg) = $sym_key->decrypt($pass) or
             return $pgp->error("Symkey decrypt failed: " . $sym_key->errstr);
     }
@@ -536,7 +550,7 @@ sub keygen {
     $kb_sec->add($id);
 
     my $sig = Crypt::OpenPGP::Signature->new(
-                             Data    => $pubcert,
+                             Data    => [ $pubcert, $id ],
                              Key     => $seccert,
                              Version => $param{Version},
                              Type    => 0x13,
@@ -1013,7 +1027,9 @@ data in I<Data> overrides that in I<Filename>.
 
 =item * Passphrase
 
-The passphrase to unlock your secret key.
+The passphrase to unlock your secret key, or to decrypt a
+symmetrically-encrypted message; the usage depends on how the message is
+encrypted.
 
 This argument is optional if your secret key is protected; if not
 provided you should supply the I<PassphraseCallback> parameter (below).
@@ -1021,19 +1037,38 @@ provided you should supply the I<PassphraseCallback> parameter (below).
 =item * PassphraseCallback
 
 A callback routine to allow interactive users (for example) to enter the
-passphrase for the specific key being used to decrypt the ciphertext.
-This is useful when your ciphertext is encrypted to several recipients,
-if you do not necessarily know ahead of time the secret key that will be
-used to decrypt it. It is also useful when you wish to provide an
-interactive user with some feedback about the key being used to decrypt
-the message.
+passphrase for the specific key being used to decrypt the ciphertext, or
+the passphrase used to encrypt a symmetrically-encrypted message. This
+is useful when your ciphertext is encrypted to several recipients, if
+you do not necessarily know ahead of time the secret key that will be used
+to decrypt it. It is also useful when you wish to provide an interactive
+user with some feedback about the key being used to decrypt the message,
+or when you don't know what type of encryption (symmetric or public-key)
+will be used to encrypt a message.
 
 The value of this parameter should be a reference to a subroutine. This
 routine will be called when a passphrase is needed from the user, and
-it will be given one argument: a I<Crypt::OpenPGP::Certificate> object
-representing the secret key. You can use the information in this object
-to present details about the key to the user. The callback routine
-should return the passphrase, a scalar string.
+it will be given either zero arguments or one argument, depending on
+whether the message is encrypted symmetrically (zero arguments) or using
+public-key encryption (one argument). If the latter, the one argument is
+a I<Crypt::OpenPGP::Certificate> object representing the secret key. You
+can use the information in this object to present details about the key to
+the user.
+
+In either case, the callback routine should return the passphrase, a
+scalar string.
+
+Your callback routine can use the number of arguments to determine how to
+prompt the user for a passphrase; for example:
+
+    sub passphrase_cb {
+        if (my $cert = $_[0]) {
+            printf "Enter passphrase for secret key %s: ",
+                $cert->key_id_hex;
+        } else {
+            print "Enter passphrase: ";
+        }
+    }
 
 This argument is optional if your secret key is protected; if not
 provided you should supply the I<Passphrase> parameter (above).

@@ -1,6 +1,25 @@
-$Id: Changes,v 1.63 2002/01/29 18:11:22 btrott Exp $
+$Id: Changes,v 1.65 2002/02/27 06:08:29 btrott Exp $
 
 Revision history for Crypt::OpenPGP
+
+1.00 2002.02.26
+    - CAST5 is now supported thanks to Crypt::CAST5_PP from Bob Mathews.
+    - bin/pgplet now supports encrypting and decrypting symmetrically-
+      encrypted messages.
+    - The PassphraseCallback argument to Crypt::OpenPGP::decrypt can now
+      be used to supply a callback for symmetrically-encrypted packets,
+      as well as public-key-encrypted packets.
+    - Fix a bug with encrypted, signed text--the signature was being
+      armoured, which led to errors from the process trying to decrypt and
+      verify.
+    - Fix a bug with symmetric-encrypted session keys w/r/t generation for
+      PGP2--PGP2 doesn't understand symmetric-encrypted session keys, so we
+      need to leave them out when Compat is PGP2. Also, we need to use the
+      'Simple' S2k rather than the default, 'Salt_Iter'.
+    - Fix a key generation bug where GnuPG will not import generated public
+      keys, because the self-signature is invalid; signature needs to be on
+      key data *and* user ID. Thanks to Joel Rowles for the spot.
+    - Fix bug in ElGamal encryption and k generation.
 
 0.18  2002.01.29
     - Added IsPacketStream parameter to Crypt::OpenPGP::Message; this turns

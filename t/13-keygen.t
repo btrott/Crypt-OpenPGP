@@ -1,4 +1,4 @@
-# $Id: 13-keygen.t,v 1.5 2001/08/11 01:11:41 btrott Exp $
+# $Id: 13-keygen.t,v 1.6 2002/02/09 18:32:58 btrott Exp $
 
 use Test;
 use Crypt::OpenPGP;
@@ -35,8 +35,9 @@ my $bits = 512;
         ok($pub->key->key->size, $bits);
         ok($sec->key->key->size, $bits);
 
+        my $uid = $pub->get('Crypt::OpenPGP::UserID')->[0];
         my $sig = $pub->get('Crypt::OpenPGP::Signature')->[0];
-        my $dgst = $sig->hash_data($pub->key);
+        my $dgst = $sig->hash_data($pub->key, $uid);
         ok($pub->key->key->verify($sig, $dgst));
 
         my $saved = $pub->save;

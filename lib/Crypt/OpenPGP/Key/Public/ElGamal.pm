@@ -1,4 +1,4 @@
-# $Id: ElGamal.pm,v 1.6 2001/08/10 22:52:29 btrott Exp $
+# $Id: ElGamal.pm,v 1.7 2002/02/09 19:40:03 btrott Exp $
 
 package Crypt::OpenPGP::Key::Public::ElGamal;
 use strict;
@@ -58,8 +58,9 @@ sub gen_k {
     my $p_minus1 = $p - 1;
     require Crypt::Random;
     my $k = Crypt::Random::makerandom( Size => $bits, Strength => 0 );
-    {
+    while (1) {
         last if gcd($k, $p_minus1) == 1;
+        $k++;
     }
     $k;
 }

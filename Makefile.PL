@@ -1,4 +1,4 @@
-# $Id: Makefile.PL,v 1.12 2001/10/04 20:50:43 btrott Exp $
+# $Id: Makefile.PL,v 1.13 2002/02/26 05:06:14 btrott Exp $
 
 use ExtUtils::MakeMaker qw( prompt WriteMakefile );
 use strict;
@@ -22,6 +22,7 @@ my %prereq = %BASE_PREREQS;
 
 my @cryptmod = (
     [ '3DES' => 'Crypt::DES_EDE3' ],
+    [ 'CAST5' => 'Crypt::CAST5_PP' ],
     [ 'IDEA' => 'Crypt::IDEA' ],
     [ 'Blowfish' => 'Crypt::Blowfish' ],
     [ 'Twofish' => 'Crypt::Twofish', '2.00' ],

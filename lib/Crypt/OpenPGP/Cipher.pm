@@ -1,4 +1,4 @@
-# $Id: Cipher.pm,v 1.15 2001/08/09 05:35:38 btrott Exp $
+# $Id: Cipher.pm,v 1.16 2002/02/26 04:49:29 btrott Exp $
 
 package Crypt::OpenPGP::Cipher;
 use strict;
@@ -11,6 +11,7 @@ use vars qw( %ALG %ALG_BY_NAME );
 %ALG = (
     1 => 'IDEA',
     2 => 'DES3',
+    3 => 'CAST5',
     4 => 'Blowfish',
     7 => 'Rijndael',
     8 => 'Rijndael192',
@@ -29,9 +30,14 @@ sub new {
     my $ciph = bless { __alg => $alg,
                        __alg_id => $ALG_BY_NAME{$alg} }, $pkg;
     my $impl_class = $ciph->crypt_class;
-    eval "use $impl_class;";
-    return $class->error("Error loading cipher implementation: $@")
-        if $@;
+    my @classes = ref($impl_class) eq 'ARRAY' ? @$impl_class : ($impl_class);
+    for my $c (@classes) {
+        eval "use $c;";
+        $ciph->{__impl} = $c, last unless $@;
+    }
+    return $class->error("Error loading cipher implementation for " .
+                         "'$ALG_BY_NAME{$alg}': no implementations installed.")
+        unless $ciph->{__impl};
     $ciph->init(@_);
 }
 
@@ -39,7 +45,7 @@ sub init {
     my $ciph = shift;
     my($key, $iv) = @_;
     if ($key) {
-        my $class = $ciph->crypt_class;
+        my $class = $ciph->{__impl};
         ## Make temp variable, because Rijndael checks SvPOK, which
         ## doesn't seem to like a value that isn't a variable?
         my $tmp = substr $key, 0, $ciph->keysize;
@@ -92,6 +98,14 @@ use base qw( Crypt::OpenPGP::Cipher );
 
 sub crypt_class { 'Crypt::DES_EDE3' }
 sub keysize { 24 }
+sub blocksize { 8 }
+
+package Crypt::OpenPGP::Cipher::CAST5;
+use strict;
+use base qw( Crypt::OpenPGP::Cipher );
+
+sub crypt_class { 'Crypt::CAST5_PP' }
+sub keysize { 16 }
 sub blocksize { 8 }
 
 package Crypt::OpenPGP::Cipher::Twofish;

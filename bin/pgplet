@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: pgplet,v 1.9 2001/10/04 20:51:55 btrott Exp $
+# $Id: pgplet,v 1.10 2002/02/26 05:05:52 btrott Exp $
 
 use lib 'lib';
 
@@ -16,12 +16,16 @@ GetOptions(\%opts, "sign|s", "encrypt|e", "detach-sign|b",
                    "list-public-keys", "list-secret-keys",
                    "fingerprint", "keyring=s", "secret-keyring=s",
                    "recipient|r=s@", "armour|a", "clearsign",
+                   "symmetric|c",
                    "enarmour", "dearmour", "compat=s");
 
 my %arg;
 $arg{PubRing} = $opts{keyring} if $opts{keyring};
 $arg{SecRing} = $opts{'secret-keyring'} if $opts{'secret-keyring'};
 $arg{Compat} = $opts{compat} if $opts{compat};
+
+## Default to GnuPG compatibility.
+$arg{Compat} = 'GnuPG' unless keys %arg;
 
 my $pgp = Crypt::OpenPGP->new( %arg ) or
     die Crypt::OpenPGP->errstr;
@@ -34,6 +38,8 @@ if ($opts{'list-keys'} || $opts{'list-public-keys'}) {
     do_list_keys(@args, 1);
 } elsif ($opts{encrypt}) {
     do_encrypt(@args);
+} elsif ($opts{symmetric}) {
+    do_encrypt(@args, 1);
 } elsif ($opts{decrypt}) {
     do_decrypt(@args);
 } elsif ($opts{sign}) {
@@ -84,9 +90,10 @@ sub do_list_keys {
 }
 
 sub do_encrypt {
-    my($pgp, $opts, $args) = @_;
+    my($pgp, $opts, $args, $symm) = @_;
     my $recips = $opts->{recipient};
-    $recips && @$recips or die "usage: $0 --encrypt -r <recip> <file>";
+    $recips && @$recips or die "usage: $0 --encrypt -r <recip> <file>"
+        unless $symm;
     my $file = shift @$args or die "usage: $0 --encrypt -r <recip> <file>";
     my $cb = sub {
         my($keys) = @_;
@@ -116,9 +123,16 @@ Enter numeric indices, separated by spaces: ";
         %sign_args = ( SignKeyID => $cert->key_id_hex,
                        SignPassphraseCallback => \&passphrase_cb );
     }
+    my %enc_args;
+    if ($symm) {
+        my $pass = prompt("Enter passphrase: ", '', 1);
+        %enc_args = ( Passphrase => $pass );
+    } else {
+        %enc_args = ( Recipients => $recips,
+                      RecipientsCallback => $cb );
+    }
     my $ct = $pgp->encrypt(
-               Recipients => $recips,
-               RecipientsCallback => $cb,
+               %enc_args,
                Filename   => $file,
                $opts->{armour} ? (Armour => $opts->{armour}) : (),
                %sign_args,
@@ -205,7 +219,9 @@ sub do_dearmour {
 
 sub passphrase_cb {
     my($cert) = @_;
-    my $prompt = sprintf qq(
+    my $prompt;
+    if ($cert) {
+        $prompt = sprintf qq(
 You need a passphrase to unlock the secret key for
 user "%s".
 %d-bit %s key, ID %s
@@ -214,6 +230,9 @@ Enter passphrase: ), $cert->uid,
                      $cert->key->size,
                      $cert->key->alg,
                      substr($cert->key_id_hex, -8, 8);
+    } else {
+        $prompt = "Enter passphrase: ";
+    }
     prompt($prompt, '', 1);
 }
 

@@ -1,4 +1,4 @@
-$Id: CREDITS,v 1.7 2001/07/28 00:58:33 btrott Exp $
+$Id: CREDITS,v 1.8 2002/02/27 06:08:08 btrott Exp $
 
 In developing Crypt::OpenPGP I have received help (either direct or
 indirect) from the following individuals, who I would like to thank:
@@ -18,6 +18,7 @@ Rafael R. Sevilla - Crypt::Rijndael
 Christian H. Geuer-Pollman - Crypt::RIPEMD160
 Vipul Ved Prakash - Crypt::RSA
 Paul Marquess - Compress::Zlib
+Bob Mathews - Crypt::CAST5_PP
 
 * Gary Howland's original pure-Perl PGP code (part of Cryptix) was
 useful when I was planning the structure of the code, in

@@ -1,4 +1,4 @@
-# $Id: Signature.pm,v 1.14 2001/08/13 01:18:19 btrott Exp $
+# $Id: Signature.pm,v 1.16 2002/02/26 04:49:48 btrott Exp $
 
 package Crypt::OpenPGP::Signature;
 use strict;
@@ -62,7 +62,7 @@ sub init {
             $sp->{data} = $cert->key_id;
             push @{ $sig->{subpackets_unhashed} }, $sp;
         }
-        my $hash = $sig->hash_data($obj);
+        my $hash = $sig->hash_data(ref($obj) eq 'ARRAY' ? @$obj : $obj);
         $sig->{chk} = substr $hash, 0, 2;
         my $sig_data = $cert->key->sign($hash,
             Crypt::OpenPGP::Digest->alg($sig->{hash_alg}));
@@ -139,7 +139,8 @@ sub parse {
     }
     $sig->{chk} = $buf->get_bytes(2);
     ## XXX should be Crypt::OpenPGP::Signature->new($sig->{pk_alg})?
-    my $key = Crypt::OpenPGP::Key::Public->new($sig->{pk_alg});
+    my $key = Crypt::OpenPGP::Key::Public->new($sig->{pk_alg})
+        or return $class->error(Crypt::OpenPGP::Key::Public->errstr);
     my @sig = $key->sig_props;
     for my $e (@sig) {
         $sig->{$e} = $buf->get_mp_int;
