@@ -1,6 +1,21 @@
-$Id: Changes,v 1.55 2001/08/16 01:04:56 btrott Exp $
+$Id: Changes,v 1.60 2001/09/16 04:48:53 btrott Exp $
 
 Revision history for Crypt::OpenPGP
+
+0.17  2001.09.15
+    - Added Crypt::OpenPGP::Config to hold per-instance configuration
+      information, either specified through the constructor, or set
+      in a config file. Reads from existing PGP/GnuPG config files.
+    - Added --compat arg to bin/pgplet for demonstration of usage of
+      Compat flag to constructor, which then gets propagated down to
+      methods, selects keyrings, etc.
+    - Made keyring selection based on compatibility mode, if given.
+    - Automatically read in appropriate config file if Compat flag
+      given.
+    - Added tests for encrypting/decrypting block of text to t/06-cipher.t.
+    - Added --sdk option to Makefile.Pl to bypass interactive prompts.
+    - Removed Crypt::DES_EDE3 from this distribution, moved into its own
+      distribution.
 
 0.16  2001.08.15
     - Took stupid extraneous files out of lib. Ick.

@@ -1,7 +1,12 @@
-# $Id: Makefile.PL,v 1.9 2001/07/31 07:03:52 btrott Exp $
+# $Id: Makefile.PL,v 1.11 2001/09/16 04:48:53 btrott Exp $
 
 use ExtUtils::MakeMaker qw( prompt WriteMakefile );
 use strict;
+
+my $is_sdk = 0;
+for my $arg (@ARGV) {
+    $is_sdk = 1, last if $arg eq '--sdk';
+}
 
 my %BASE_PREREQS = (
         'Data::Buffer'   => '0.04',
@@ -16,7 +21,7 @@ my %BASE_PREREQS = (
 my %prereq = %BASE_PREREQS;
 
 my @cryptmod = (
-    [ '3DES' => 'Crypt::DES' ],
+    [ '3DES' => 'Crypt::DES_EDE3' ],
     [ 'IDEA' => 'Crypt::IDEA' ],
     [ 'Blowfish' => 'Crypt::Blowfish' ],
     [ 'Twofish' => 'Crypt::Twofish', '2.00' ],
@@ -35,7 +40,16 @@ my @pkmod = (
     [ 'RSA' => 'Crypt::RSA' ],
 );
 
-print<<MSG;
+if ($is_sdk) {
+    for my $list (\@cryptmod, \@dgstmod, \@pkmod) {
+        for my $ref (@$list) {
+            if ($ref->[1]) {
+                $prereq{$ref->[1]} = $ref->[2] ? $ref->[2] : 0;
+            }
+        }
+    }
+} else {
+    print<<MSG;
 This is Crypt::OpenPGP, a pure-Perl implementation of the OpenPGP
 standard.
 
@@ -47,19 +61,19 @@ Please choose at least one from the following list (3DES is the
 default).
 
 MSG
-my $i = 1;
-for my $ciph (@cryptmod) {
-    printf "    [%d] %s\n", $i++, $ciph->[0];
-}
-my $c = prompt("\nEnter your choices, separated by spaces:", 1);
-print "\n";
+    my $i = 1;
+    for my $ciph (@cryptmod) {
+        printf "    [%d] %s\n", $i++, $ciph->[0];
+    }
+    my $c = prompt("\nEnter your choices, separated by spaces:", 1);
+    print "\n";
 
-for my $id (split /\s+/, $c) {
-    next unless $cryptmod[$id-1]->[1];
-    $prereq{ $cryptmod[$id-1]->[1] } = $cryptmod[$id-1]->[2] || '0';
-}
+    for my $id (split /\s+/, $c) {
+        next unless $cryptmod[$id-1]->[1];
+        $prereq{ $cryptmod[$id-1]->[1] } = $cryptmod[$id-1]->[2] || '0';
+    }
 
-print<<MSG;
+    print<<MSG;
 Each of the Crypt::OpenPGP digest algorithms depends on a module
 from the CPAN. You may already have the necessary module(s)
 installed, in which you don't need to bother with this step.
@@ -68,21 +82,21 @@ Please choose at least one from the following list (SHA-1 is the
 default).
 
 MSG
-my $i = 1;
-for my $ciph (@dgstmod) {
-    printf "    [%d] %s\n", $i++, $ciph->[0];
-}
-my $c = prompt("\nEnter your choices, separated by spaces:", 2);
-print "\n";
+    my $i = 1;
+    for my $ciph (@dgstmod) {
+        printf "    [%d] %s\n", $i++, $ciph->[0];
+    }
+    my $c = prompt("\nEnter your choices, separated by spaces:", 2);
+    print "\n";
 
-for my $id (split /\s+/, $c) {
-    next unless $dgstmod[$id-1]->[1];
-    $prereq{ $dgstmod[$id-1]->[1] } = '0';
-}
+    for my $id (split /\s+/, $c) {
+        next unless $dgstmod[$id-1]->[1];
+        $prereq{ $dgstmod[$id-1]->[1] } = '0';
+    }
 
 =pod
 
-print<<MSG;
+    print<<MSG;
 
 Crypt::OpenPGP also requires at least one public-key implementation;
 it may require more, depending on what types of keys you use in
@@ -94,32 +108,32 @@ to use with Crypt::OpenPGP. Please choose at least one from the
 following list (DSA and ElGamal are the defaults).
 
 MSG
-my $i = 1;
-for my $pk (@pkmod) {
-    printf "    [%d] %s\n", $i++, $pk->[0];
-}
-my $c = prompt("\nEnter your choices, separated by spaces:", '1 2');
-print "\n";
+    my $i = 1;
+    for my $pk (@pkmod) {
+        printf "    [%d] %s\n", $i++, $pk->[0];
+    }
+    my $c = prompt("\nEnter your choices, separated by spaces:", '1 2');
+    print "\n";
 
-for my $id (split /\s+/, $c) {
-    next unless $pkmod[$id-1]->[1];
-    $prereq{ $pkmod[$id-1]->[1] } = '0';
-}
+    for my $id (split /\s+/, $c) {
+        next unless $pkmod[$id-1]->[1];
+        $prereq{ $pkmod[$id-1]->[1] } = '0';
+    }
 
 =cut
 
-print "\nChecking for required modules\n\n";
-my(%todo, $missing);
-while (my($k, $v) = each %prereq) {
-    unless (check_module($k, $v, \$missing)) {
-        $todo{$k} = $v;
+    print "\nChecking for required modules\n\n";
+    my(%todo, $missing);
+    while (my($k, $v) = each %prereq) {
+        unless (check_module($k, $v, \$missing)) {
+            $todo{$k} = $v;
+        }
     }
-}
-use Cwd;
-my $cwd = cwd();
+    use Cwd;
+    my $cwd = cwd();
 
-if (%todo) {
-    print <<MSG;
+    if (%todo) {
+        print <<MSG;
 Crypt::OpenPGP depends on several external modules for functionality.
 Some of these modules can not be found on your system; they can be
 installed automatically for you. To do so will require loading the
@@ -130,17 +144,18 @@ install them to use Crypt::OpenPGP.
 
 MSG
 
-    while (my($k, $v) = each %todo) {
-        if (prompt(sprintf("%s%s not installed/out of date. Install (y/n)?",
-          $k, $v ? " (ver. $v)" : ""), "y") =~ /^y/) {
-            require CPAN; CPAN::Shell->install($k);
-            delete $prereq{$k};
-            chdir $cwd or die "Can't chdir back to $cwd: $!";
+        while (my($k, $v) = each %todo) {
+            if (prompt(sprintf("%s%s not installed/out of date. Install (y/n)?",
+              $k, $v ? " (ver. $v)" : ""), "y") =~ /^y/) {
+                require CPAN; CPAN::Shell->install($k);
+                delete $prereq{$k};
+                chdir $cwd or die "Can't chdir back to $cwd: $!";
+            }
         }
     }
+    print "\n";
 }
 
-print "\n";
 WriteMakefile(
     NAME => 'Crypt::OpenPGP',
     DISTNAME => 'Crypt-OpenPGP',

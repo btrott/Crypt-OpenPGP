@@ -1,4 +1,4 @@
-$Id: README,v 1.6 2001/08/15 22:11:14 btrott Exp $
+$Id: README,v 1.7 2001/09/16 04:48:53 btrott Exp $
 
 This is Crypt::OpenPGP. It provides a pure-Perl implementation of the
 OpenPGP standard, including support for all versions of PGP and
@@ -16,7 +16,7 @@ Crypt::OpenPGP requires the following Perl modules:
 Depending on which symmetric ciphers you use, you will require
 at least one of the following modules:
 
-    * Crypt::DES (for 3DES)
+    * Crypt::DES_EDE3 (for 3DES)
     * Crypt::IDEA (for IDEA)
     * Crypt::Blowfish (for Blowfish)
     * Crypt::Twofish (for Twofish)

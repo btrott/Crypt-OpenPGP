@@ -5,7 +5,6 @@ Makefile.PL
 README
 ToDo
 bin/pgplet
-lib/Crypt/DES_EDE3.pm
 lib/Crypt/OpenPGP.pm
 lib/Crypt/OpenPGP/Armour.pm
 lib/Crypt/OpenPGP/Buffer.pm
@@ -14,6 +13,7 @@ lib/Crypt/OpenPGP/Certificate.pm
 lib/Crypt/OpenPGP/Cipher.pm
 lib/Crypt/OpenPGP/Ciphertext.pm
 lib/Crypt/OpenPGP/Compressed.pm
+lib/Crypt/OpenPGP/Config.pm
 lib/Crypt/OpenPGP/Constants.pm
 lib/Crypt/OpenPGP/Digest.pm
 lib/Crypt/OpenPGP/ErrorHandler.pm
@@ -52,10 +52,13 @@ t/05-packets.t
 t/06-cipher.t
 t/07-digest.t
 t/08-compress.t
+t/09-config.t
 t/10-keyring.t
 t/11-encrypt.t
 t/12-sign.t
 t/13-keygen.t
+t/samples/cfg.gnupg
+t/samples/cfg.pgp2
 t/samples/gpg/ring.pub
 t/samples/gpg/ring.sec
 t/test-common.pl

@@ -1,4 +1,4 @@
-# $Id: 11-encrypt.t,v 1.10 2001/08/11 07:38:50 btrott Exp $
+# $Id: 11-encrypt.t,v 1.11 2001/08/29 21:31:01 btrott Exp $
 
 use Test;
 use Crypt::OpenPGP;
@@ -148,7 +148,8 @@ ok($pt eq $text);
 
 ## Test giving encrypt and decrypt the Key parameter to
 ## bypass looking up key in keyring.
-my $ring = Crypt::OpenPGP::KeyRing->new( Filename => $pgp->{SecRing} );
+my $ring = Crypt::OpenPGP::KeyRing->new( Filename =>
+    $pgp->{cfg}->get('SecRing') );
 my $kb = $ring->find_keyblock_by_keyid(pack 'H*', $key_id);
 my $cert = $kb->encrypting_key;
 $cert->unlock($pass);

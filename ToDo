@@ -1,4 +1,4 @@
-$Id: ToDo,v 1.31 2001/08/12 23:33:07 btrott Exp $
+$Id: ToDo,v 1.32 2001/09/16 04:48:53 btrott Exp $
 
 Crypt::OpenPGP todo
 --------
@@ -26,7 +26,7 @@ xx * KeyRing::find_keyblock_by_keyid should no longer return certificate if
   rings.
 xx * compatibility param to encrypt and sign (and keygen, maybe), eg.
      Compat => 'PGP2' turns on Version => 3 and Cipher => 'IDEA'
-* read existing PGPx/GnuPG config files into Config object
+xx * read existing PGPx/GnuPG config files into Config object
 * smart detection and description of arbitrary files, eg. pass in some
   data and give back 'RSA signed message, Version 3, probably PGP2'
 xx * compressed packets

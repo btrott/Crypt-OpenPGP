@@ -1,67 +1,90 @@
-# $Id: OpenPGP.pm,v 1.69 2001/08/16 01:04:57 btrott Exp $
+# $Id: OpenPGP.pm,v 1.73 2001/09/16 04:48:20 btrott Exp $
 
 package Crypt::OpenPGP;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.16';
+$VERSION = '0.17';
 
 use Crypt::OpenPGP::Constants qw( DEFAULT_CIPHER );
 use Crypt::OpenPGP::KeyRing;
 use Crypt::OpenPGP::Plaintext;
 use Crypt::OpenPGP::Message;
 use Crypt::OpenPGP::PacketFactory;
+use Crypt::OpenPGP::Config;
 
 use Crypt::OpenPGP::ErrorHandler;
 use base qw( Crypt::OpenPGP::ErrorHandler );
 
-use vars qw( %DEFAULTS %COMPAT );
+use vars qw( %COMPAT );
 
 {
     my $env = sub {
         my $dir = shift; my @paths;
         if (exists $ENV{$dir}) { for (@_) { push @paths, "$ENV{$dir}/$_" } }
-        return @paths ? @paths : "";
+        return @paths ? @paths : ();
     };
 
-    %DEFAULTS = (
-        PubRing => [ $env->('PGPPATH','pubring.pgp', 'pubring.pkr'),
-                     $env->('HOME', '.pgp/pubring.pgp', '.pgp/pubring.pkr'),
-                     $env->('GNUPGHOME', 'pubring.gpg'),
-                     $env->('HOME', '.gnupg/pubring.gpg'),
-                   ],
-
-        SecRing => [ $env->('PGPPATH','secring.pgp', 'secring.skr'),
-                     $env->('HOME', '.pgp/secring.pgp', '.pgp/secring.skr'),
-                     $env->('GNUPGHOME', 'secring.gpg'),
-                     $env->('HOME', '.gnupg/secring.gpg'),
-                   ],
-    );
-}
-
-%COMPAT = (
-    PGP2 => {
+    %COMPAT = (
+        PGP2 => {
               'sign'    => { Digest => 'MD5', Version => 3 },
               'encrypt' => { Cipher => 'IDEA', Compress => 'ZIP' },
               'keygen'  => { Type => 'RSA', Cipher => 'IDEA',
                              Version => 3, Digest => 'MD5' },
-    },
+              'PubRing' => [
+                     $env->('PGPPATH','pubring.pgp'),
+                     $env->('HOME', '.pgp/pubring.pgp'),
+              ],
+              'SecRing' => [
+                     $env->('PGPPATH','secring.pgp'),
+                     $env->('HOME', '.pgp/secring.pgp'),
+              ],
+              'Config'  => [
+                     $env->('PGPPATH', 'config.txt'),
+                     $env->('HOME', '.pgp/config.txt'),
+              ],
+        },
 
-    PGP5 => {
+        PGP5 => {
               'sign'    => { Digest => 'SHA1', Version => 3 },
               'encrypt' => { Cipher => 'DES3', Compress => 'ZIP' },
               'keygen'  => { Type => 'DSA', Cipher => 'DES3',
                              Version => 4, Digest => 'SHA1' },
-    },
+              'PubRing' => [
+                     $env->('PGPPATH','pubring.pkr'),
+                     $env->('HOME', '.pgp/pubring.pkr'),
+              ],
+              'SecRing' => [
+                     $env->('PGPPATH','secring.skr'),
+                     $env->('HOME', '.pgp/secring.skr'),
+              ],
+              'Config'  => [
+                     $env->('PGPPATH', 'pgp.cfg'),
+                     $env->('HOME', '.pgp/pgp.cfg'),
+              ],
+        },
 
-    GnuPG => {
+        GnuPG => {
               'sign'    => { Digest => 'RIPEMD160', Version => 4 },
               'encrypt' => { Cipher => 'Rijndael', Compress => 'Zlib',
                              MDC => 1 },
               'keygen'  => { Type => 'DSA', Cipher => 'Rijndael',
                              Version => 4, Digest => 'RIPEMD160' },
-    },
-);
+              'Config'  => [
+                     $env->('GNUPGHOME', 'options'),
+                     $env->('HOME', '.gnupg/options'),
+              ],
+              'PubRing' => [
+                     $env->('GNUPGHOME', 'pubring.gpg'),
+                     $env->('HOME', '.gnupg/pubring.gpg'),
+              ],
+              'SecRing' => [
+                     $env->('GNUPGHOME', 'secring.gpg'),
+                     $env->('HOME', '.gnupg/secring.gpg'),
+              ],
+        },
+    );
+}
 
 sub version_string { __PACKAGE__ . ' ' . $VERSION }
 
@@ -71,16 +94,32 @@ sub new {
     $pgp->init(@_);
 }
 
+sub _first_exists {
+    my($list) = @_;
+    for my $f (@$list) {
+        next unless $f;
+        return $f if -e $f;
+    }
+}
+
 sub init {
     my $pgp = shift;
     my %param = @_;
-    ## XXX fix, read options from GnuPG options file, etc.?
-    $pgp->{$_} = $param{$_} for keys %param;
+    my $cfg_file = delete $param{ConfigFile};
+    my $cfg = $pgp->{cfg} = Crypt::OpenPGP::Config->new(%param) or
+        return Crypt::OpenPGP::Config->errstr;
+    if (!$cfg_file && (my $compat = $cfg->get('Compat'))) {
+        $cfg_file = _first_exists($COMPAT{$compat}{Config});
+    }
+    if ($cfg_file) {
+        $cfg->read_config($param{Compat}, $cfg_file);
+    }
     for my $s (qw( PubRing SecRing )) {
-        unless (defined $pgp->{$s}) {
-            for my $ring (@{ $DEFAULTS{$s} }) {
-                next unless $ring; 
-                $pgp->{$s} = $ring, last if -e $ring;
+        unless (defined $cfg->get($s)) {
+            my @compats = $param{Compat} ? ($param{Compat}) : keys %COMPAT;
+            for my $compat (@compats) {
+                my $ring = _first_exists($COMPAT{$compat}{$s});
+                $cfg->set($s, $ring), last if $ring;
             }
         }
     }
@@ -101,7 +140,8 @@ sub sign {
     }
     unless ($cert = $param{Key}) {
         my $kid = $param{KeyID} or return $pgp->error("No KeyID specified");
-        my $ring = Crypt::OpenPGP::KeyRing->new( Filename => $pgp->{SecRing} );
+        my $ring = Crypt::OpenPGP::KeyRing->new( Filename =>
+            $pgp->{cfg}->get('SecRing') );
         my $kb = $ring->find_keyblock_by_keyid(pack 'H*', $kid) or
             return $pgp->error("Could not find secret key with KeyID $kid");
         $cert = $kb->signing_key;
@@ -205,7 +245,8 @@ sub verify {
     my($cert, $kb);
     unless ($cert = $param{Key}) {
         my $key_id = $sig->key_id;
-        my $ring = Crypt::OpenPGP::KeyRing->new( Filename => $pgp->{PubRing} );
+        my $ring = Crypt::OpenPGP::KeyRing->new( Filename =>
+            $pgp->{cfg}->get('PubRing') );
         $kb = $ring->find_keyblock_by_keyid($key_id) or
             return $pgp->error("Could not find public key with KeyID " .
                 unpack('H*', $key_id));
@@ -270,7 +311,7 @@ sub encrypt {
         if (my $recips = $param{Recipients}) {
             my @recips = ref $recips eq 'ARRAY' ? @$recips : $recips;
             my $ring = Crypt::OpenPGP::KeyRing->new( Filename =>
-                $pgp->{PubRing} );
+                $pgp->{cfg}->get('PubRing') );
             my %seen;
             for my $r (@recips) {
                 my($lr, @kb) = (length($r));
@@ -361,7 +402,7 @@ sub decrypt {
         my($sym_key, $cert) = (shift @pieces);
         unless ($cert = $param{Key}) {
             my $ring = Crypt::OpenPGP::KeyRing->new(Filename =>
-                $pgp->{SecRing});
+                $pgp->{cfg}->get('SecRing'));
             my($kb);
             while (ref($sym_key) eq 'Crypt::OpenPGP::SessionKey') {
                 if ($kb = $ring->find_keyblock_by_keyid($sym_key->key_id)) {
@@ -487,16 +528,23 @@ sub _read_files {
     $data;
 }
 
-sub _merge_compat {
-    my $pgp = shift;
-    my($param, $meth) = @_;
-    my $compat = $param->{Compat} or return 1;
-    my $ref = $COMPAT{$compat}{$meth} or
-        return $pgp->error("No settings for Compat class '$compat'");
-    for my $arg (keys %$ref) {
-        $param->{$arg} = $ref->{$arg} unless exists $param->{$arg};
+{
+    my @MERGE_CONFIG = qw( Cipher Armour Digest );
+    sub _merge_compat {
+        my $pgp = shift;
+        my($param, $meth) = @_;
+        my $compat = $param->{Compat} || $pgp->{cfg}->get('Compat') || return 1;
+        my $ref = $COMPAT{$compat}{$meth} or
+            return $pgp->error("No settings for Compat class '$compat'");
+        for my $arg (keys %$ref) {
+            $param->{$arg} = $ref->{$arg} unless exists $param->{$arg};
+        }
+        for my $key (@MERGE_CONFIG) {
+            $param->{$key} = $pgp->{cfg}->get($key)
+                unless exists $param->{$key};
+        }
+        1;
     }
-    1;
 }
 
 1;
@@ -525,7 +573,7 @@ Crypt::OpenPGP - Pure-Perl OpenPGP implementation
 
     my $ciphertext = $pgp->encrypt(
                    Filename   => $file,
-                   KeyID      => $key_id,
+                   Recipients => $key_id,
                    Armour     => 1,
              );
 
@@ -579,9 +627,9 @@ I<Compat> parameter, giving it one of the values from the list below.
 For example:
 
     my $ct = $pgp->encrypt(
-                  Compat   => 'PGP2',
-                  Filename => 'foo.pl',
-                  KeyID    => $key_id,
+                  Compat     => 'PGP2',
+                  Filename   => 'foo.pl',
+                  Recipients => $key_id,
              );
 
 Because I<PGP2> was specified, the data will automatically be encrypted
@@ -634,6 +682,24 @@ I<%args> can contain:
 
 =over 4
 
+=item * Compat
+
+The compatibility mode for this I<Crypt::OpenPGP> object. This value will
+propagate down into method calls upon this object, meaning that it will be
+applied for all method calls invoked on this object. For example, if you set
+I<Compat> here, you do not have to set it again when calling I<encrypt>
+or I<sign> (below), unless, of course, you want to set I<Compat> to a
+different value for those methods.
+
+I<Compat> influences several factors upon object creation, unless otherwise
+overridden in the constructor arguments: if you have a configuration file
+for this compatibility mode (eg. F<~/.gnupg/options> for GnuPG), it will
+be automatically read in, and I<Crypt::OpenPGP> will set any options
+relevant to its execution (symmetric cipher algorithm, etc.); I<PubRing>
+and I<SecRing> (below) are set according to the default values for this
+compatibility mode (eg. F<~/.gnupg/pubring.gpg for the GnuPG public
+keyring).
+
 =item * SecRing
 
 Path to your secret keyring. If unspecified, I<Crypt::OpenPGP> will look
@@ -643,6 +709,23 @@ for your keyring in a number of default places.
 
 Path to your public keyring. If unspecified, I<Crypt::OpenPGP> will look
 for your keyring in a number of default places.
+
+=item * ConfigFile
+
+Path to a PGP/GnuPG config file. If specified, you must also pass in a
+value for the I<Compat> parameter, stating what format config file you are
+passing in. For example, if you are passing in the path to a GnuPG config
+file, you should give a value of C<GnuPG> for the I<Compat> flag.
+
+If you leave I<ConfigFile> unspecified, but you have specified a value for
+I<Compat>, I<Crypt::OpenPGP> will try to find your config file, based on
+the value of I<Compat> that you pass in (eg. F<~/.gnupg/options> if
+I<Compat> is C<GnuPG>).
+
+NOTE: if you do not specify a I<Compat> flag, I<Crypt::OpenPGP> cannot read
+any configuration files, even if you I<have> specified a value for the
+I<ConfigFile> parameter, because it will not be able to determine the proper
+config file format.
 
 =back
 
@@ -730,8 +813,8 @@ cryptography; this can be useful in certain circumstances (for example,
 when encrypting data locally on disk).
 
 This argument is optional; if not provided you should provide the
-I<KeyID> option (above) to perform public-key encryption when encrypting
-the session key.
+I<Recipients> option (above) to perform public-key encryption when
+encrypting the session key.
 
 =item * RecipientsCallback
 

@@ -1,4 +1,4 @@
-# $Id: 12-sign.t,v 1.5 2001/08/11 07:46:46 btrott Exp $
+# $Id: 12-sign.t,v 1.6 2001/08/29 21:31:01 btrott Exp $
 
 use Test;
 use Crypt::OpenPGP;
@@ -84,7 +84,8 @@ $signer = $pgp->verify( Signature => $sig );
 ok($signer, $uid);
 
 ## Test using Key param to sign and verify.
-my $ring = Crypt::OpenPGP::KeyRing->new( Filename => $pgp->{SecRing} );
+my $ring = Crypt::OpenPGP::KeyRing->new( Filename =>
+    $pgp->{cfg}->get('SecRing') );
 my $kb = $ring->find_keyblock_by_keyid(pack 'H*', $key_id);
 my $cert = $kb->signing_key;
 $cert->unlock($pass);

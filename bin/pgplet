@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: pgplet,v 1.5 2001/08/15 22:21:27 btrott Exp $
+# $Id: pgplet,v 1.8 2001/08/30 03:40:24 btrott Exp $
 
 use lib 'lib';
 
@@ -16,10 +16,15 @@ GetOptions(\%opts, "sign|s", "encrypt|e", "detach-sign|b",
                    "list-public-keys", "list-secret-keys",
                    "fingerprint", "keyring=s", "secret-keyring=s",
                    "recipient|r=s@", "armour|a", "clearsign",
-                   "enarmour", "dearmour");
+                   "enarmour", "dearmour", "compat=s");
 
-my $pgp = Crypt::OpenPGP->new( PubRing => $opts{keyring},
-                               SecRing => $opts{'secret-keyring'} );
+my %arg;
+$arg{PubRing} = $opts{keyring} if $opts{keyring};
+$arg{SecRing} = $opts{'secret-keyring'} if $opts{'secret-keyring'};
+$arg{Compat} = $opts{compat} if $opts{compat};
+
+my $pgp = Crypt::OpenPGP->new( %arg ) or
+    die Crypt::OpenPGP->errstr;
 
 my @args = ($pgp, \%opts, \@ARGV);
 
@@ -48,7 +53,7 @@ if ($opts{'list-keys'} || $opts{'list-public-keys'}) {
 sub do_list_keys {
     my($pgp, $opts, $args, $secret) = @_;
     my $fp = $opts->{fingerprint};
-    my $ring_file = $pgp->{ $secret ? 'SecRing' : 'PubRing' };
+    my $ring_file = $pgp->{cfg}->get( $secret ? 'SecRing' : 'PubRing' );
     my $ring = Crypt::OpenPGP::KeyRing->new( Filename => $ring_file );
     $ring->read;
     my @blocks = $ring->blocks;
@@ -60,7 +65,7 @@ sub do_list_keys {
             ($cert->is_secret ? 'sec' : 'pub'),
             $cert->key->size,
             $cert->key->public_key->abbrev,
-            uc unpack('H*', substr $cert->key_id, -4, 4),
+            substr($cert->key_id_hex, -8, 8),
             ($kb->primary_uid || '');
         if ($fp) {
             my $f = $cert->fingerprint;
@@ -72,7 +77,7 @@ sub do_list_keys {
                 ($sub->is_secret ? 'ssb' : 'sub'),
                 $sub->key->size,
                 $sub->key->public_key->abbrev,
-                uc unpack('H*', substr $sub->key_id, -4, 4),
+                substr($cert->key_id_hex, -8, 8),
         }
         print "\n";
     }
@@ -92,7 +97,7 @@ Message is being encrypted to:
         for my $cert (@$keys) {
             $prompt .= sprintf "    [%d] %s (ID %s)\n",
                 $i++, $cert->uid,
-                uc unpack('H*', substr $cert->key_id, -4, 4);
+                substr($cert->key_id_hex, -8, 8);
         }
         $prompt .= "
 If these are the intended recipients, press <enter>. Otherwise,
@@ -114,9 +119,8 @@ Enter numeric indices, separated by spaces: ";
     my $ct = $pgp->encrypt(
                Recipients => $recips,
                RecipientsCallback => $cb,
-               Compat     => 'GnuPG',
                Filename   => $file,
-               Armour     => $opts->{armour},
+               $opts->{armour} ? (Armour => $opts->{armour}) : (),
                %sign_args,
             ) or die $pgp->errstr;
     print $ct;
@@ -155,13 +159,12 @@ sub do_sign {
     my $cert = find_default_seckey($pgp);
     until ($sig) {
         $sig = $pgp->sign(
-                 Compat     => 'GnuPG',
                  Filename   => $file,
                  Detach     => $detach,
                  Clearsign  => $clear,
                  Key        => $cert,
                  PassphraseCallback => \&passphrase_cb,
-                 Armour     => $opts->{armour},
+                 $opts->{armour} ? (Armour => $opts->{armour}) : (),
         );
         unless ($sig) {
             if ($pgp->errstr =~ /Bad checksum/) {
@@ -210,14 +213,15 @@ user "%s".
 Enter passphrase: ), $cert->uid,
                      $cert->key->size,
                      $cert->key->alg,
-                     uc unpack('H*', substr $cert->key_id, -4, 4);
+                     substr($cert->key_id_hex, -8, 8);
     prompt($prompt, '', 1);
 }
 
 sub find_default_seckey {
     my($pgp) = @_;
-    my $ring = Crypt::OpenPGP::KeyRing->new( Filename => $pgp->{SecRing} ) or
-        return $pgp->error(Crypt::OpenPGP::KeyRing->errstr);
+    my $ring = Crypt::OpenPGP::KeyRing->new( Filename =>
+        $pgp->{cfg}->get('SecRing') ) or
+            return $pgp->error(Crypt::OpenPGP::KeyRing->errstr);
     my $kb = $ring->find_keyblock_by_index(-1) or
         return $pgp->error("Can't find last keyblock: " . $ring->errstr);
     my $cert = $kb->signing_key;
