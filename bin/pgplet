@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: pgplet,v 1.12 2002/07/15 07:08:20 btrott Exp $
+# $Id: pgplet,v 1.14 2002/10/12 21:55:47 btrott Exp $
 
 use lib 'lib';
 
@@ -17,7 +17,8 @@ GetOptions(\%opts, "sign|s", "encrypt|e", "detach-sign|b",
                    "fingerprint", "keyring=s", "secret-keyring=s",
                    "recipient|r=s@", "armour|a", "clearsign",
                    "symmetric|c", "list-packets",
-                   "enarmour", "dearmour", "compat=s");
+                   "enarmour", "dearmour", "compat=s",
+                   "keyserver=s", "local-user|u=s");
 
 my %arg;
 $arg{PubRing} = $opts{keyring} if $opts{keyring};
@@ -26,6 +27,11 @@ $arg{Compat} = $opts{compat} if $opts{compat};
 
 ## Default to GnuPG compatibility.
 $arg{Compat} = 'GnuPG' unless keys %arg;
+
+if (my $ks = $opts{keyserver}) {
+    $arg{AutoKeyRetrieve} = 1;
+    $arg{KeyServer} = $ks;
+}
 
 my $pgp = Crypt::OpenPGP->new( %arg ) or
     die Crypt::OpenPGP->errstr;
@@ -78,7 +84,8 @@ sub do_list_keys {
     my($pgp, $opts, $args, $secret) = @_;
     my $fp = $opts->{fingerprint};
     my $ring_file = $pgp->{cfg}->get( $secret ? 'SecRing' : 'PubRing' );
-    my $ring = Crypt::OpenPGP::KeyRing->new( Filename => $ring_file );
+    my $ring = Crypt::OpenPGP::KeyRing->new( Filename => $ring_file )
+        or die Crypt::OpenPGP::KeyRing->errstr;
     $ring->read;
     my @blocks = $ring->blocks;
 
@@ -115,6 +122,7 @@ sub do_encrypt {
     my $file = shift @$args or die "usage: $0 --encrypt -r <recip> <file>";
     my $cb = sub {
         my($keys) = @_;
+        return [] unless @$keys;
         my $prompt = "
 Message is being encrypted to:
 ";
@@ -137,7 +145,7 @@ Enter numeric indices, separated by spaces: ";
     };
     my %sign_args;
     if ($opts->{sign}) {
-        my $cert = find_default_seckey($pgp);
+        my $cert = get_seckey($pgp, $opts) or die $pgp->errstr;
         %sign_args = ( SignKeyID => $cert->key_id_hex,
                        SignPassphraseCallback => \&passphrase_cb );
     }
@@ -188,7 +196,7 @@ sub do_sign {
     my($pgp, $opts, $args, $detach, $clear) = @_;
     my $file = shift @$args or die "usage: $0 --sign <file>";
     my $sig;
-    my $cert = find_default_seckey($pgp);
+    my $cert = get_seckey($pgp, $opts) or die $pgp->errstr;
     until ($sig) {
         $sig = $pgp->sign(
                  Filename   => $file,
@@ -270,13 +278,43 @@ Enter passphrase: ), $cert->uid,
     prompt($prompt, '', 1);
 }
 
-sub find_default_seckey {
-    my($pgp) = @_;
+sub get_seckey {
+    my($pgp, $opts) = @_;
     my $ring = Crypt::OpenPGP::KeyRing->new( Filename =>
         $pgp->{cfg}->get('SecRing') ) or
             return $pgp->error(Crypt::OpenPGP::KeyRing->errstr);
-    my $kb = $ring->find_keyblock_by_index(-1) or
-        return $pgp->error("Can't find last keyblock: " . $ring->errstr);
+    my $kb;
+    if (my $user = $opts->{'local-user'}) {
+        my($lr, @kb) = (length($user));
+        if (($lr == 8 || $lr == 16) && $user !~ /[^\da-fA-F]/) {
+            @kb = $ring->find_keyblock_by_keyid(pack 'H*', $user);
+        } else {
+            @kb = $ring->find_keyblock_by_uid($user);
+        }
+        if (@kb > 1) {
+            my $prompt = "
+The following keys can be used to sign the message:
+";
+            my $i = 1;
+            for my $kb (@kb) {
+                my $cert = $kb->signing_key or next;
+                $prompt .= sprintf "    [%d] %s (ID %s)\n",
+                    $i++, $kb->primary_uid,
+                    substr($cert->key_id_hex, -8, 8);
+            }
+            $prompt .= "
+Enter the index of the signing key you wish to use: ";
+            my $n;
+            $n = prompt($prompt, $i - 1) while $n < 1 || $n > @kb;
+            $kb = $kb[$n-1];
+        } else {
+            $kb = $kb[0];
+        }
+    } else {
+        $kb = $ring->find_keyblock_by_index(-1);
+    }
+    return $pgp->error("Can't find keyblock: " . $ring->errstr)
+        unless $kb;
     my $cert = $kb->signing_key;
     $cert->uid($kb->primary_uid);
     $cert;
@@ -291,5 +329,5 @@ sub prompt {
     chomp(my $ans = ReadLine(0));
     ReadMode('restore');
     print STDERR "\n";
-    $ans ? $ans : $def;
+    defined $ans && $ans ne '' ? $ans : $def;
 }

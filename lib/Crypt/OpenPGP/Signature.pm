@@ -1,4 +1,4 @@
-# $Id: Signature.pm,v 1.17 2002/07/12 23:52:57 btrott Exp $
+# $Id: Signature.pm,v 1.18 2002/10/12 22:02:29 btrott Exp $
 
 package Crypt::OpenPGP::Signature;
 use strict;
@@ -26,6 +26,11 @@ sub timestamp {
     $sig->{version} < 4 ?
         $sig->{timestamp} :
         $sig->find_subpacket(2)->{data};
+}
+
+sub digest {
+    my $sig = shift;
+    Crypt::OpenPGP::Digest->new($sig->{hash_alg});
 }
 
 sub find_subpacket {
@@ -411,6 +416,11 @@ Returns the ID of the key that created the signature.
 
 Returns the time that the signature was created in Unix epoch time (seconds
 since 1970).
+
+=head2 $sig->digest
+
+Returns a Crypt::OpenPGP::Digest object representing the digest algorithm
+used by the signature.
 
 =head1 AUTHOR & COPYRIGHTS
 

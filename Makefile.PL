@@ -1,4 +1,4 @@
-# $Id: Makefile.PL,v 1.13 2002/02/26 05:06:14 btrott Exp $
+# $Id: Makefile.PL,v 1.14 2002/10/12 22:02:43 btrott Exp $
 
 use ExtUtils::MakeMaker qw( prompt WriteMakefile );
 use strict;
@@ -13,6 +13,8 @@ my %BASE_PREREQS = (
         'MIME::Base64'   => 0,
         'Math::Pari'     => 0,
         'Compress::Zlib' => 0,
+        'LWP::UserAgent' => 0,
+        'URI::Escape'    => 0,
 
         'Crypt::DSA' => 0,
         'Crypt::RSA' => 0,

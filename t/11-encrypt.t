@@ -1,11 +1,11 @@
-# $Id: 11-encrypt.t,v 1.12 2002/07/12 23:59:18 btrott Exp $
+# $Id: 11-encrypt.t,v 1.13 2002/09/05 23:50:50 btrott Exp $
 
 use Test;
 use Crypt::OpenPGP;
 use Crypt::OpenPGP::Message;
 use strict;
 
-BEGIN { plan tests => 45 }
+BEGIN { plan tests => 51 }
 
 use vars qw( $SAMPLES );
 unshift @INC, 't/';
@@ -156,6 +156,27 @@ my $cert = $kb->encrypting_key;
 $cert->unlock($pass);
 $ct = $pgp->encrypt(
                Key        => $cert->public_cert,
+               Data       => $text,
+            );
+ok($ct);
+$pt = $pgp->decrypt( Data => $ct, Key => $cert );
+ok($pt);
+ok($pt eq $text);
+
+## Test multiple recipipents where we only pass in the Key
+## for the second key.
+$ct = $pgp->encrypt(
+               Recipients => [ $key_id2, $key_id ],
+               Data       => $text,
+            );
+ok($ct);
+$pt = $pgp->decrypt( Data => $ct, Key => $cert );
+ok($pt);
+ok($pt eq $text);
+
+## Same, but we pass in the Key for the first key.
+$ct = $pgp->encrypt(
+               Recipients => [ $key_id, $key_id2 ],
                Data       => $text,
             );
 ok($ct);

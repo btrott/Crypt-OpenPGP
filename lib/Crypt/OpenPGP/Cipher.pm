@@ -1,4 +1,4 @@
-# $Id: Cipher.pm,v 1.17 2002/07/12 23:53:37 btrott Exp $
+# $Id: Cipher.pm,v 1.18 2002/09/05 23:49:39 btrott Exp $
 
 package Crypt::OpenPGP::Cipher;
 use strict;
@@ -36,7 +36,7 @@ sub new {
         $ciph->{__impl} = $c, last unless $@;
     }
     return $class->error("Error loading cipher implementation for " .
-                         "'$ALG_BY_NAME{$alg}': no implementations installed.")
+                         "'$alg': no implementations installed.")
         unless $ciph->{__impl};
     $ciph->init(@_);
 }

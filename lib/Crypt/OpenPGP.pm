@@ -1,10 +1,10 @@
-# $Id: OpenPGP.pm,v 1.86 2002/07/13 01:08:39 btrott Exp $
+# $Id: OpenPGP.pm,v 1.89 2002/10/12 21:35:46 btrott Exp $
 
 package Crypt::OpenPGP;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '1.01';
+$VERSION = '1.02';
 
 use Crypt::OpenPGP::Constants qw( DEFAULT_CIPHER );
 use Crypt::OpenPGP::KeyRing;
@@ -94,6 +94,27 @@ $Crypt::OpenPGP::Globals::Trim_trailing_ws = 1;
 
 sub version_string { __PACKAGE__ . ' ' . $VERSION }
 
+sub pubrings { $_[0]->{pubrings} }
+sub secrings { $_[0]->{secrings} }
+
+use constant PUBLIC => 1;
+use constant SECRET => 2;
+
+sub add_ring {
+    my $pgp = shift;
+    my($type, $ring) = @_;
+    unless (ref($ring) eq 'Crypt::OpenPGP::KeyRing') {
+        $ring = Crypt::OpenPGP::KeyRing->new( Filename => $ring )
+            or return Crypt::OpenPGP::KeyRing->errstr;
+    }
+    if ($type == SECRET) {
+        push @{ $pgp->{secrings} }, $ring;
+    } else {
+        push @{ $pgp->{pubrings} }, $ring;
+    }
+    $ring;
+}
+
 sub new {
     my $class = shift;
     my $pgp = bless { }, $class;
@@ -110,6 +131,8 @@ sub _first_exists {
 
 sub init {
     my $pgp = shift;
+    $pgp->{pubrings} = [];
+    $pgp->{secrings} = [];
     my %param = @_;
     my $cfg_file = delete $param{ConfigFile};
     my $cfg = $pgp->{cfg} = Crypt::OpenPGP::Config->new(%param) or
@@ -120,6 +143,7 @@ sub init {
     if ($cfg_file) {
         $cfg->read_config($param{Compat}, $cfg_file);
     }
+    ## Load public and secret keyrings.
     for my $s (qw( PubRing SecRing )) {
         unless (defined $cfg->get($s)) {
             my @compats = $param{Compat} ? ($param{Compat}) : keys %COMPAT;
@@ -127,6 +151,9 @@ sub init {
                 my $ring = _first_exists($COMPAT{$compat}{$s});
                 $cfg->set($s, $ring), last if $ring;
             }
+        }
+        if (my $ring = $cfg->get($s)) {
+            $pgp->add_ring($s eq 'PubRing' ? PUBLIC : SECRET, $ring);
         }
     }
     $pgp;
@@ -230,8 +257,8 @@ sub sign {
     }
     unless ($cert = $param{Key}) {
         my $kid = $param{KeyID} or return $pgp->error("No KeyID specified");
-        my $ring = Crypt::OpenPGP::KeyRing->new( Filename =>
-            $pgp->{cfg}->get('SecRing') );
+        my $ring = $pgp->secrings->[0]
+            or return $pgp->error("No secret keyrings");
         my $kb = $ring->find_keyblock_by_keyid(pack 'H*', $kid) or
             return $pgp->error("Could not find secret key with KeyID $kid");
         $cert = $kb->signing_key;
@@ -345,11 +372,21 @@ sub verify {
     my($cert, $kb);
     unless ($cert = $param{Key}) {
         my $key_id = $sig->key_id;
-        my $ring = Crypt::OpenPGP::KeyRing->new( Filename =>
-            $pgp->{cfg}->get('PubRing') );
-        $kb = $ring->find_keyblock_by_keyid($key_id) or
+        my $ring = $pgp->pubrings->[0]
+            or return $pgp->error("No public keyrings");
+        unless ($kb = $ring->find_keyblock_by_keyid($key_id)) {
+            my $cfg = $pgp->{cfg};
+            if ($cfg->get('AutoKeyRetrieve') && $cfg->get('KeyServer')) {
+                require Crypt::OpenPGP::KeyServer;
+                my $server = Crypt::OpenPGP::KeyServer->new(
+                                Server => $cfg->get('KeyServer'),
+                          );
+                $kb = $server->find_keyblock_by_keyid($key_id);
+            }
             return $pgp->error("Could not find public key with KeyID " .
-                unpack('H*', $key_id));
+                unpack('H*', $key_id))
+                unless $kb;
+        }
         $cert = $kb->signing_key;
     }
 
@@ -428,17 +465,28 @@ sub encrypt {
         my @keys;
         if (my $recips = $param{Recipients}) {
             my @recips = ref $recips eq 'ARRAY' ? @$recips : $recips;
-            my $ring = Crypt::OpenPGP::KeyRing->new( Filename =>
-                $pgp->{cfg}->get('PubRing') ) or
-                return $pgp->error("Opening keyring failed: " .
-                    Crypt::OpenPGP::KeyRing->errstr);
+            my $ring = $pgp->pubrings->[0]
+                or return $pgp->error("No public keyrings");
             my %seen;
+            my $server;
+            my $cfg = $pgp->{cfg};
+            if ($cfg->get('AutoKeyRetrieve') && $cfg->get('KeyServer')) {
+                require Crypt::OpenPGP::KeyServer;
+                $server = Crypt::OpenPGP::KeyServer->new(
+                                Server => $cfg->get('KeyServer'),
+                          );
+            }
             for my $r (@recips) {
                 my($lr, @kb) = (length($r));
                 if (($lr == 8 || $lr == 16) && $r !~ /[^\da-fA-F]/) {
-                    @kb = $ring->find_keyblock_by_keyid(pack 'H*', $r);
+                    my $id = pack 'H*', $r;
+                    @kb = $ring->find_keyblock_by_keyid($id);
+                    @kb = $server->find_keyblock_by_keyid($id)
+                        if !@kb && $server;
                 } else {
                     @kb = $ring->find_keyblock_by_uid($r);
+                    @kb = $server->find_keyblock_by_uid($r)
+                        if !@kb && $server;
                 }
                 for my $kb (@kb) {
                     next unless my $cert = $kb->encrypting_key;
@@ -528,21 +576,31 @@ sub decrypt {
     }
     my($key, $alg);
     if (ref($pieces[0]) eq 'Crypt::OpenPGP::SessionKey') {
-        my($sym_key, $cert) = (shift @pieces);
+        my($sym_key, $cert, $ring) = (shift @pieces);
         unless ($cert = $param{Key}) {
-            my $ring = Crypt::OpenPGP::KeyRing->new(Filename =>
-                $pgp->{cfg}->get('SecRing'));
-            my($kb);
-            while (ref($sym_key) eq 'Crypt::OpenPGP::SessionKey') {
+            $ring = $pgp->secrings->[0]
+                or return $pgp->error("No secret keyrings");
+        }
+        my($kb);
+        while (ref($sym_key) eq 'Crypt::OpenPGP::SessionKey') {
+            if ($cert) {
+                if ($cert->key_id eq $sym_key->key_id) {
+                    shift @pieces
+                        while ref($pieces[0]) eq 'Crypt::OpenPGP::SessionKey';
+                    last;
+                }
+            } else {
                 if ($kb = $ring->find_keyblock_by_keyid($sym_key->key_id)) {
                     shift @pieces
                         while ref($pieces[0]) eq 'Crypt::OpenPGP::SessionKey';
                     last;
                 }
-                $sym_key = shift @pieces;
             }
-            return $pgp->error("Can't find a secret key to decrypt message")
-                unless $kb;
+            $sym_key = shift @pieces;
+        }
+        return $pgp->error("Can't find a secret key to decrypt message")
+            unless $kb || $cert;
+        if ($kb) {
             $cert = $kb->encrypting_key;
             $cert->uid($kb->primary_uid);
         }
@@ -774,7 +832,7 @@ by you.
 
 This module currently supports C<RSA> and C<DSA> for digital signatures,
 and C<RSA> and C<ElGamal> for encryption/decryption. It supports the
-symmetric ciphers C<3DES>, C<Blowfish>, C<IDEA>, C<Twofish>, and
+symmetric ciphers C<3DES>, C<Blowfish>, C<IDEA>, C<Twofish>, C<CAST5>, and
 C<Rijndael> (C<AES>). C<Rijndael> is supported for key sizes of C<128>,
 C<192>, and C<256> bits. I<Crypt::OpenPGP> supports the digest algorithms
 C<MD5>, C<SHA-1>, and C<RIPE-MD/160>. And it supports C<ZIP> and C<Zlib>
@@ -878,10 +936,16 @@ keyring).
 Path to your secret keyring. If unspecified, I<Crypt::OpenPGP> will look
 for your keyring in a number of default places.
 
+As an alternative to passing in a path to the keyring file, you can pass in
+a I<Crypt::OpenPGP::KeyRing> object representing a secret keyring.
+
 =item * PubRing
 
 Path to your public keyring. If unspecified, I<Crypt::OpenPGP> will look
 for your keyring in a number of default places.
+
+As an alternative to passing in a path to the keyring file, you can pass in
+a I<Crypt::OpenPGP::KeyRing> object representing a public keyring.
 
 =item * ConfigFile
 
@@ -899,6 +963,22 @@ NOTE: if you do not specify a I<Compat> flag, I<Crypt::OpenPGP> cannot read
 any configuration files, even if you I<have> specified a value for the
 I<ConfigFile> parameter, because it will not be able to determine the proper
 config file format.
+
+=item * KeyServer
+
+The hostname of the HKP keyserver. You can get a list of keyservers through
+
+    % host -l pgp.net | grep wwwkeys
+
+If I<AutoKeyRetrieve> is set to a true value,
+keys will be automatically retrieved from the keyserver if they are not found
+in your local keyring.
+
+=item * AutoKeyRetrieve
+
+If set to a true value, and if I<KeyServer> is set to a keyserver name,
+I<encrypt> and I<verify> will automatically try to fetch public keys from
+the keyserver if they are not found in your local keyring.
 
 =back
 
@@ -1564,7 +1644,7 @@ it under the same terms as Perl itself.
 =head1 AUTHOR & COPYRIGHT
 
 Except where otherwise noted, Crypt::OpenPGP is Copyright 2001 Benjamin
-Trott, ben@rhumba.pair.com. All rights reserved.
+Trott, cpan@stupidfool.org. All rights reserved.
 
 =head1 REFERENCES
 

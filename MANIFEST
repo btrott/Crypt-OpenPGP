@@ -62,4 +62,5 @@ t/samples/cfg.gnupg
 t/samples/cfg.pgp2
 t/samples/gpg/ring.pub
 t/samples/gpg/ring.sec
+t/samples/message.asc
 t/test-common.pl

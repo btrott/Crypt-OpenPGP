@@ -1,6 +1,24 @@
-$Id: Changes,v 1.66 2002/07/15 21:24:49 btrott Exp $
+$Id: Changes,v 1.67 2002/10/12 22:02:43 btrott Exp $
 
 Revision history for Crypt::OpenPGP
+
+1.02 2002.10.12
+    - encrypt and verify now support auto-retrieval of public keys from
+      an HKP keyserver, if the keys are not found in the local keyring.
+    - Added support for the SHA-1 integrity checks on secret keys used
+      by gnupg 1.0.7. Thanks to Chip Turner for the spot.
+    - Added a --local-user|-u option to bin/pgplet to support using a
+      different secret key for signing. Thanks to Joseph Pepin for the
+      patch.
+    - new() now accepts Crypt::OpenPGP::KeyRing objects for the PubRing
+      and SecRing parameters.
+    - Fixed a bug in decrypt where passing in a "Key" param to decrypt a
+      message encrypted to multiple recipients did not work. Thanks to
+      rdailey for the spot.
+    - ElGamal self-signatures no longer cause an error.
+    - Added LWP::UserAgent and URI::Escape to prereqs, for keyserver.
+    - Added Crypt::OpenPGP::Signature::digest accessor. Thanks to Bob
+      Mathews for the patch.
 
 1.01 2002.07.15
     - Added Crypt::OpenPGP::handle, a DWIM wrapper around the other

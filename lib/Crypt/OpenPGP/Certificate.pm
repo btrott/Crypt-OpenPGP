@@ -1,4 +1,4 @@
-# $Id: Certificate.pm,v 1.18 2001/08/12 23:31:53 btrott Exp $
+# $Id: Certificate.pm,v 1.19 2002/09/05 23:49:21 btrott Exp $
 
 package Crypt::OpenPGP::Certificate;
 use strict;
@@ -172,7 +172,8 @@ sub parse {
         $cert->{cipher} = $buf->get_int8;
         if ($cert->{cipher}) {
             $cert->{is_protected} = 1;
-            if ($cert->{cipher} == 255) {
+            if ($cert->{cipher} == 255 || $cert->{cipher} == 254) {
+                $cert->{sha1check} = $cert->{cipher} == 254;
                 $cert->{cipher} = $buf->get_int8;
                 $cert->{s2k} = Crypt::OpenPGP::S2k->parse($buf);
             }
@@ -299,10 +300,18 @@ sub unlock {
     }
     else {
         my $decrypted = $cipher->decrypt($cert->{encrypted});
-        my $csum = unpack "n", substr $decrypted, -2, 2, '';
-        my $gen_csum = unpack '%16C*', $decrypted;
-        unless ($csum == $gen_csum) {
-            return $cert->error("Bad checksum");
+        if ($cert->{sha1check}) {
+            my $dgst = Crypt::OpenPGP::Digest->new('SHA1');
+            my $csum = substr $decrypted, -20, 20, '';
+            unless ($dgst->hash($decrypted) eq $csum) {
+                return $cert->error("Bad SHA-1 hash");
+            }
+        } else {
+            my $csum = unpack "n", substr $decrypted, -2, 2, '';
+            my $gen_csum = unpack '%16C*', $decrypted;
+            unless ($csum == $gen_csum) {
+               return $cert->error("Bad simple checksum");
+            }
         }
         my $buf = Crypt::OpenPGP::Buffer->new;
         $buf->append($decrypted);

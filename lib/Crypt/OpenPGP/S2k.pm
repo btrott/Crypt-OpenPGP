@@ -1,4 +1,4 @@
-# $Id: S2k.pm,v 1.8 2001/07/29 06:07:17 btrott Exp $
+# $Id: S2k.pm,v 1.9 2002/10/12 18:49:19 btrott Exp $
 
 package Crypt::OpenPGP::S2k;
 use strict;
@@ -106,7 +106,7 @@ sub init {
     $s2k;
 }
 
-sub s2k { $_[0]->{hash}->hash($_[2] . $_[1] . $_[0]->{salt}) }
+sub s2k { $_[0]->{hash}->hash($_[0]->{salt} . $_[2] . $_[1]) }
 
 sub save {
     my $s2k = shift;
