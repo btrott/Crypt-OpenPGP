@@ -1,10 +1,10 @@
-# $Id: Makefile.PL,v 1.8 2001/07/29 17:52:56 btrott Exp $
+# $Id: Makefile.PL,v 1.9 2001/07/31 07:03:52 btrott Exp $
 
 use ExtUtils::MakeMaker qw( prompt WriteMakefile );
 use strict;
 
 my %BASE_PREREQS = (
-        'Data::Buffer'   => '0.03',
+        'Data::Buffer'   => '0.04',
         'MIME::Base64'   => 0,
         'Math::Pari'     => 0,
         'Compress::Zlib' => 0,

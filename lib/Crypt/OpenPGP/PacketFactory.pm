@@ -1,4 +1,4 @@
-# $Id: PacketFactory.pm,v 1.16 2001/07/29 13:21:06 btrott Exp $
+# $Id: PacketFactory.pm,v 1.18 2001/07/31 07:38:42 btrott Exp $
 
 package Crypt::OpenPGP::PacketFactory;
 use strict;
@@ -51,12 +51,19 @@ sub parse {
         %parse = %find;
     }
 
-    my($type, $len, $hdrlen, $b);
+    my($type, $len, $partial, $hdrlen, $b);
     do {
-        ($type, $len, $hdrlen) = $class->_parse_header($buf);
+        ($type, $len, $partial, $hdrlen) = $class->_parse_header($buf);
         $b = $buf->extract($len ? $len : $buf->length - $buf->offset);
         return unless $type;
     } while !$find{$type};                 ## Skip
+
+    while ($partial) {
+        my $off = $buf->offset;
+        (my($nlen), $partial) = $class->_parse_new_len_header($buf);
+        $len += $nlen + ($buf->offset - $off);
+        $b->append( $buf->get_bytes($nlen) );
+    }
 
     my $obj;
     if ($parse{$type} && (my $ref = $PACKET_TYPES{$type})) {
@@ -83,19 +90,10 @@ sub _parse_header {
     return $class->error("Parse error: bit 7 not set!")
         unless $tag & 0x80;
     my $is_new = $tag & 0x40;
-    my($type, $len);
+    my($type, $len, $partial);
     if ($is_new) {
         $type = $tag & 0x3f;
-        my $lb1 = $buf->get_int8;
-        if ($lb1 <= 191) {
-            $len = $lb1;
-        } elsif ($lb1 <= 223) {
-            $len = (($lb1-192) << 8) + $buf->get_int8 + 192;
-        } elsif ($lb1 < 255) {
-            $len = 1 << ($lb1 + 0x1f);
-        } else {
-            $len = $buf->get_int32;
-        }
+        ($len, $partial) = $class->_parse_new_len_header($buf);
     }
     else {
         $type = ($tag>>2)&0xf;
@@ -106,7 +104,26 @@ sub _parse_header {
             $len += $buf->get_int8;
         }
     }
-    ($type, $len, $buf->offset - $off_start);
+    ($type, $len, $partial, $buf->offset - $off_start);
+}
+
+sub _parse_new_len_header {
+    my $class = shift;
+    my($buf) = @_;
+    return unless $buf && $buf->offset < $buf->length;
+    my $lb1 = $buf->get_int8;
+    my($partial, $len);
+    if ($lb1 <= 191) {
+        $len = $lb1;
+    } elsif ($lb1 <= 223) {
+        $len = (($lb1-192) << 8) + $buf->get_int8 + 192;
+    } elsif ($lb1 < 255) {
+        $partial++;
+        $len = 1 << ($lb1 & 0x1f);
+    } else {
+        $len = $buf->get_int32;
+    }
+    ($len, $partial);
 }
 
 sub save {

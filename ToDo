@@ -1,4 +1,4 @@
-$Id: ToDo,v 1.20 2001/07/30 06:04:48 btrott Exp $
+$Id: ToDo,v 1.21 2001/07/31 21:28:33 btrott Exp $
 
 Crypt::OpenPGP todo
 --------
@@ -19,6 +19,8 @@ xx * more support for looking up keys in keyring (eg. look up userid, etc.)
   and PUBLIC_KEY packets? since we already have the start cert there is
   no use in parsing the next one we come to, because that indicates the
   start of a new keyblock.
+* add KeyRing::find_keyblock_by_index; given index, return that keyblock.
+  also allow negative indices. create map of keyring on KeyRing::init.
 xx* compatibility param to encrypt and sign (and keygen, maybe), eg.
     Compat => 'PGP2' turns on Version => 3 and Cipher => 'IDEA'
 * smart detection and description of arbitrary files, eg. pass in some

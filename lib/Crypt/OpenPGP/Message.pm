@@ -1,4 +1,4 @@
-# $Id: Message.pm,v 1.5 2001/07/30 05:36:54 btrott Exp $
+# $Id: Message.pm,v 1.7 2001/07/31 07:44:37 btrott Exp $
 
 package Crypt::OpenPGP::Message;
 use strict;
@@ -37,7 +37,7 @@ sub read {
         $data = $sig;
     }
 
-    if ($data =~ /-----BEGIN/) {
+    if ($data =~ /^-----BEGIN PGP/m) {
         require Crypt::OpenPGP::Armour;
         my $rec = Crypt::OpenPGP::Armour->unarmour($data) or
             return $msg->error("Unarmour failed: " .
@@ -47,7 +47,7 @@ sub read {
     my $buf = Crypt::OpenPGP::Buffer->new;
     $buf->append($data);
     $msg->restore($buf);
-    push @{ $msg->{pieces} }, $pt;
+    push @{ $msg->{pieces} }, $pt if $pt;
     1;
 }
 

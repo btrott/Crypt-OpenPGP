@@ -1,10 +1,10 @@
-# $Id: OpenPGP.pm,v 1.52 2001/07/30 06:01:37 btrott Exp $
+# $Id: OpenPGP.pm,v 1.54 2001/07/31 18:54:31 btrott Exp $
 
 package Crypt::OpenPGP;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.12';
+$VERSION = '0.13';
 
 use Crypt::OpenPGP::Constants qw( DEFAULT_CIPHER );
 use Crypt::OpenPGP::KeyRing;
@@ -313,7 +313,20 @@ sub decrypt {
     }
     my($key, $alg);
     if (ref($pieces[0]) eq 'Crypt::OpenPGP::SessionKey') {
-        my $sym_key = shift @pieces;
+        my $sym_key;
+        while (ref($pieces[0]) eq 'Crypt::OpenPGP::SessionKey') {
+            $sym_key = shift @pieces;
+            if ($param{KeyID}) { 
+                if ($sym_key->key_id ne pack 'H*', $param{KeyID}) { 
+                    if (ref($pieces[0] ne 'Crypt::OpenPGP::SessionKey')) { 
+                        return $pgp->error("Can't find key with ID " .
+                        unpack('H*', $sym_key->key_id));
+                    } 
+                } else { 
+                    shift @pieces while ref($pieces[0]) eq 'Crypt::OpenPGP::SessionKey';
+                }
+             } else { last }
+        }
         my $ring = Crypt::OpenPGP::KeyRing->new( Filename => $pgp->{SecRing} );
         my($kb, $cert) = $ring->find_keyblock_by_keyid($sym_key->key_id);
         return $pgp->error("Can't find key with ID " .
@@ -326,7 +339,7 @@ sub decrypt {
         }
         ($key, $alg) = $sym_key->decrypt($cert) or
             return $pgp->error("Symkey decrypt failed: " . $sym_key->errstr);
-    }
+    } 
     elsif (ref($pieces[0]) eq 'Crypt::OpenPGP::SKSessionKey') {
         my $sym_key = shift @pieces;
         my $pass = $param{Passphrase} or
@@ -345,7 +358,9 @@ sub decrypt {
             return $pgp->error("Decompression error: " . $pt->errstr);
         $buf = Crypt::OpenPGP::Buffer->new;
         $buf->append($data);
-        $pt = Crypt::OpenPGP::PacketFactory->parse($buf);
+        while (ref($pt) ne "Crypt::OpenPGP::Plaintext") { 
+            $pt = Crypt::OpenPGP::PacketFactory->parse($buf);
+        }
     }
     $pt->data;
 }

@@ -1,6 +1,20 @@
-$Id: Changes,v 1.36 2001/07/30 05:38:46 btrott Exp $
+$Id: Changes,v 1.38 2001/07/31 18:54:30 btrott Exp $
 
 Revision history for Crypt::OpenPGP
+
+0.13  2001.07.31
+    - Fix handling of partial length headers.
+    - Use proper version of Data::Buffer in Makefile.PL prereq.
+    - Fix bug with -----BEGIN PGP in text that is not actually armoured;
+      Crypt::OpenPGP::Message thought it saw armoured text, but it
+      wasn't really armoured, which caused an error.
+    - Skip non-Plaintext packets when decrypting; this skips Signature
+      packets for 'encrypted & signed' messages. This is a temporary
+      measure; in the future it would be nice to automatically verify
+      the signatures. Thanks to Vipul for the patch.
+    - Allow a KeyID param to decrypt that specifies the key ID to use
+      when decrypting the message, in case there are multiple session
+      key packets. Thanks to Vipul for the patch.
 
 0.12  2001.07.29
     - Added support for clear-text signatures, both creating (Clearsign
