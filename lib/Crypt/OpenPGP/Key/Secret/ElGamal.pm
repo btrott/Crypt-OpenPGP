@@ -1,4 +1,4 @@
-# $Id: ElGamal.pm,v 1.6 2001/07/26 02:34:41 btrott Exp $
+# $Id: ElGamal.pm,v 1.7 2001/08/06 07:30:48 btrott Exp $
 
 package Crypt::OpenPGP::Key::Secret::ElGamal;
 use strict;
@@ -13,6 +13,7 @@ sub secret_props { qw( x ) }
 *crypt_props = \&Crypt::OpenPGP::Key::Public::ElGamal::crypt_props;
 *size = \&Crypt::OpenPGP::Key::Public::ElGamal::size;
 *keygen = \&Crypt::OpenPGP::Key::Public::ElGamal::keygen;
+*can_encrypt = \&Crypt::OpenPGP::Key::Public::ElGamal::can_encrypt;
 
 sub init {
     my $key = shift;

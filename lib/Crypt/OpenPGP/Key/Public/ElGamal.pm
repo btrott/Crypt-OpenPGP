@@ -1,4 +1,4 @@
-# $Id: ElGamal.pm,v 1.4 2001/07/26 02:33:41 btrott Exp $
+# $Id: ElGamal.pm,v 1.5 2001/08/06 07:30:47 btrott Exp $
 
 package Crypt::OpenPGP::Key::Public::ElGamal;
 use strict;
@@ -7,6 +7,8 @@ use Crypt::OpenPGP::Util qw( bitsize);
 use Crypt::OpenPGP::Key::Public;
 use Crypt::OpenPGP::ErrorHandler;
 use base qw( Crypt::OpenPGP::Key::Public Crypt::OpenPGP::ErrorHandler );
+
+sub can_encrypt { 1 }
 
 sub public_props { qw( p g y ) }
 sub crypt_props { qw( a b ) }

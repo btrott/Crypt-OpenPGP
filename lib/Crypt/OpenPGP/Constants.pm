@@ -1,4 +1,4 @@
-# $Id: Constants.pm,v 1.6 2001/07/28 21:49:16 btrott Exp $
+# $Id: Constants.pm,v 1.7 2001/08/09 04:28:57 btrott Exp $
 
 package Crypt::OpenPGP::Constants;
 use strict;
@@ -20,6 +20,8 @@ use vars qw( %CONSTANTS );
     'PGP_PKT_RING_TRUST'    => 12,
     'PGP_PKT_USER_ID'       => 13,
     'PGP_PKT_PUBLIC_SUBKEY' => 14,
+    'PGP_PKT_ENCRYPTED_MDC' => 18,
+    'PGP_PKT_MDC'           => 19,
 
     'DEFAULT_CIPHER' => 2,
     'DEFAULT_DIGEST' => 2,

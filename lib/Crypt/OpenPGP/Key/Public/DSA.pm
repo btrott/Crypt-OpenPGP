@@ -1,4 +1,4 @@
-# $Id: DSA.pm,v 1.4 2001/07/26 02:33:41 btrott Exp $
+# $Id: DSA.pm,v 1.6 2001/08/09 04:26:34 btrott Exp $
 
 package Crypt::OpenPGP::Key::Public::DSA;
 use strict;
@@ -7,6 +7,8 @@ use Crypt::DSA::Key;
 use Crypt::OpenPGP::Key::Public;
 use Crypt::OpenPGP::ErrorHandler;
 use base qw( Crypt::OpenPGP::Key::Public Crypt::OpenPGP::ErrorHandler );
+
+sub can_sign { 1 }
 
 sub init {
     my $key = shift;
@@ -22,7 +24,7 @@ sub keygen {
     my $sec = $dsa->keygen( %param );
     my $pub = bless { }, 'Crypt::DSA::Key';
     for my $e (qw( p q g pub_key )) {
-        $pub->$e( $sec->$e );
+        $pub->$e( $sec->$e() );
     }
     ($pub, $sec);
 }

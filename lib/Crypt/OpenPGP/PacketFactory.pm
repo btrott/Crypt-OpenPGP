@@ -1,4 +1,4 @@
-# $Id: PacketFactory.pm,v 1.18 2001/07/31 07:38:42 btrott Exp $
+# $Id: PacketFactory.pm,v 1.19 2001/08/09 05:35:56 btrott Exp $
 
 package Crypt::OpenPGP::PacketFactory;
 use strict;
@@ -27,6 +27,9 @@ use vars qw( %PACKET_TYPES %PACKET_TYPES_BY_CLASS );
     PGP_PKT_MARKER()        => { class => 'Crypt::OpenPGP::Marker' },
     PGP_PKT_PLAINTEXT()     => { class => 'Crypt::OpenPGP::Plaintext' },
     PGP_PKT_RING_TRUST()    => { class => 'Crypt::OpenPGP::Trust' },
+    PGP_PKT_ENCRYPTED_MDC() => { class => 'Crypt::OpenPGP::Ciphertext',
+                                 args  => [ 1 ] },
+    PGP_PKT_MDC()           => { class => 'Crypt::OpenPGP::MDC' },
 );
 
 %PACKET_TYPES_BY_CLASS = map { $PACKET_TYPES{$_}{class} => $_ } keys %PACKET_TYPES;
@@ -137,7 +140,21 @@ sub save {
                    $PACKET_TYPES_BY_CLASS{ref($obj)};
         my $hdrlen = $obj->can('pkt_hdrlen') ? $obj->pkt_hdrlen : undef;
         my $buf = Crypt::OpenPGP::Buffer->new;
-        if ($obj->{is_new}) {
+        if ($obj->{is_new} || $type > 15) {
+            my $tag = 0xc0 | ($type & 0x3f);
+            $buf->put_int8($tag);
+            return $class->error("Can't write partial length packets")
+                unless $len;
+            if ($len < 192) {
+                $buf->put_int8($len);
+            } elsif ($len < 8384) {
+                $len -= 192;
+                $buf->put_int8(int($len / 256) + 192);
+                $buf->put_int8($len % 256);
+            } else {
+                $buf->put_int8(0xff);
+                $buf->put_int32($len);
+            }
         }
         else {
             unless ($hdrlen) {
@@ -167,8 +184,8 @@ sub save {
                 $buf->put_int8($tag | 2);
                 $buf->put_int32($len);
             }
-            $buf->put_bytes($body);
         }
+        $buf->put_bytes($body);
         $ser .= $buf->bytes;
     }
     $ser;

@@ -1,4 +1,4 @@
-# $Id: UserID.pm,v 1.5 2001/07/29 06:44:17 btrott Exp $
+# $Id: UserID.pm,v 1.6 2001/08/09 18:57:07 btrott Exp $
 
 package Crypt::OpenPGP::UserID;
 use strict;
@@ -78,8 +78,8 @@ I<new> (above) as I<$identity>, for example.
 
 Given I<$buffer>, a I<Crypt::OpenPGP::Buffer> object holding (or
 with offset pointing to) a User ID packet, returns a new
-<Crypt::OpenPGP::Ciphertext> object, initialized with the user ID
-data in the buffer.
+<Crypt::OpenPGP::UserID> object, initialized with the user ID data
+in the buffer.
 
 =head2 $uid->id
 

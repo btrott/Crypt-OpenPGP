@@ -1,4 +1,4 @@
-# $Id: RSA.pm,v 1.7 2001/07/26 02:33:41 btrott Exp $
+# $Id: RSA.pm,v 1.8 2001/08/06 07:30:47 btrott Exp $
 
 package Crypt::OpenPGP::Key::Public::RSA;
 use strict;
@@ -9,6 +9,9 @@ use Crypt::OpenPGP::Util qw( bitsize bin2mp mp2bin );
 use Crypt::OpenPGP::Key::Public;
 use Crypt::OpenPGP::ErrorHandler;
 use base qw( Crypt::OpenPGP::Key::Public Crypt::OpenPGP::ErrorHandler );
+
+sub can_encrypt { 1 }
+sub can_sign { 1 }
 
 sub public_props { qw( n e ) }
 sub crypt_props { qw( c ) }

@@ -1,4 +1,4 @@
-# $Id: Key.pm,v 1.6 2001/07/29 03:37:49 btrott Exp $
+# $Id: Key.pm,v 1.8 2001/08/06 07:31:47 btrott Exp $
 
 package Crypt::OpenPGP::Key;
 use strict;
@@ -57,6 +57,9 @@ sub bytesize { int(($_[0]->size + 7) / 8) }
 
 sub public_key { }
 sub is_secret { 0 }
+
+sub can_encrypt { 0 }
+sub can_sign { 0 }
 
 sub DESTROY { }
 
@@ -206,6 +209,16 @@ public key, I<$key> is returned; otherwise a new public key object
 (I<Crypt::OpenPGP::Key::Public>) is constructed, and the public values
 from the secret key are copied into the public key. The new public
 key is returned.
+
+=head2 $key->can_encrypt
+
+Returns true if the key algorithm has encryption/decryption
+capabilities, false otherwise.
+
+=head2 $key->can_sign
+
+Returns true if the key algorithm has signing/verification
+capabilities, false otherwise.
 
 =head2 $key->alg
 

@@ -27,6 +27,7 @@ lib/Crypt/OpenPGP/Key/Secret/ElGamal.pm
 lib/Crypt/OpenPGP/Key/Secret/RSA.pm
 lib/Crypt/OpenPGP/KeyBlock.pm
 lib/Crypt/OpenPGP/KeyRing.pm
+lib/Crypt/OpenPGP/MDC.pm
 lib/Crypt/OpenPGP/Marker.pm
 lib/Crypt/OpenPGP/Message.pm
 lib/Crypt/OpenPGP/OnePassSig.pm
@@ -48,6 +49,7 @@ t/04-armour.t
 t/05-packets.t
 t/06-cipher.t
 t/07-digest.t
+t/08-compress.t
 t/10-keyring.t
 t/11-encrypt.t
 t/12-sign.t

@@ -1,4 +1,4 @@
-# $Id: DSA.pm,v 1.4 2001/07/26 02:34:41 btrott Exp $
+# $Id: DSA.pm,v 1.5 2001/08/06 07:30:48 btrott Exp $
 
 package Crypt::OpenPGP::Key::Secret::DSA;
 use strict;
@@ -14,6 +14,7 @@ sub sig_props { qw( r s ) }
 *public_props = \&Crypt::OpenPGP::Key::Public::DSA::public_props;
 *size = \&Crypt::OpenPGP::Key::Public::DSA::size;
 *keygen = \&Crypt::OpenPGP::Key::Public::DSA::keygen;
+*can_sign = \&Crypt::OpenPGP::Key::Public::DSA::can_sign;
 
 sub init {
     my $key = shift;

@@ -1,4 +1,4 @@
-# $Id: KeyRing.pm,v 1.14 2001/07/29 13:58:16 btrott Exp $
+# $Id: KeyRing.pm,v 1.17 2001/08/06 21:20:47 btrott Exp $
 
 package Crypt::OpenPGP::KeyRing;
 use strict;
@@ -76,12 +76,13 @@ sub find_keyblock_by_keyid {
     my($key_id) = @_;
     my $ref = $ring->{by_keyid}{$key_id};
     unless ($ref) {
-        my($kb, $cert) = $ring->find_keyblock(
-            sub { $_[0]->key_id eq $key_id },
+        my $len = length($key_id);
+        my @kbs = $ring->find_keyblock(
+            sub { substr($_[0]->key_id, -$len, $len) eq $key_id },
             [ PGP_PKT_PUBLIC_KEY, PGP_PKT_SECRET_KEY,
-              PGP_PKT_PUBLIC_SUBKEY, PGP_PKT_SECRET_SUBKEY ] );
-        return unless $kb && $cert;
-        $ref = $ring->{by_keyid}{ $key_id } = [ $kb, $cert ];
+              PGP_PKT_PUBLIC_SUBKEY, PGP_PKT_SECRET_SUBKEY ], 1 );
+        return unless @kbs;
+        $ref = $ring->{by_keyid}{ $key_id } = \@kbs;
     }
     return wantarray ? @$ref : $ref->[0];
 }
@@ -203,21 +204,26 @@ This argument is optional.
 =head2 $ring->find_keyblock_by_keyid($key_id)
 
 Looks up the key ID I<$key_id> in the keyring I<$ring>. I<$key_id>
-should be an 8-octet string--it should I<not> be a string of
-hexadecimal digits. If that is what you have, use I<pack> to convert
-it to an 8-octet string:
+should be either a 4-octet or 8-octet string--it should I<not> be a
+string of hexadecimal digits. If that is what you have, use I<pack> to
+convert it to an octet string:
 
     pack 'H*', $hex_key_id
 
 If a keyblock is found where the key ID of either the master key or
-subkey matches I<$key_id>, that keyblock will be returned. In scalar
-context, only the I<Crypt::OpenPGP::KeyBlock> object is returned; in
-list context, both the I<Crypt::OpenPGP::KeyBlock> object and the
-I<Crypt::OpenPGP::Certificate> object whose key ID matches will be
-returned. This can be useful in determining exactly which master
-key/subkey matched in the block.
+subkey matches I<$key_id>, that keyblock will be returned. The
+definition of "match" depends on the length of I<$key_id>: if it is a
+16-digit hex number, only exact matches will be returned; if it is an
+8-digit hex number, any keyblocks containing keys whose last 8 hex
+digits match I<$key_id> will be returned.
 
-Returns false on failure.
+In scalar context, only the first keyblock found in the keyring is
+returned; in list context, all matching keyblocks are returned. In
+practice, duplicated key IDs are rare, particularly so if you specify
+the full 16 hex digits in I<$key_id>.
+
+Returns false on failure (C<undef> in scalar context, an empty list in
+list context).
 
 =head2 $ring->find_keyblock_by_uid($uid)
 

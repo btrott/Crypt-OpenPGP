@@ -1,4 +1,4 @@
-# $Id: Compressed.pm,v 1.5 2001/07/29 04:32:06 btrott Exp $
+# $Id: Compressed.pm,v 1.6 2001/08/09 18:13:10 btrott Exp $
 
 package Crypt::OpenPGP::Compressed;
 use strict;
@@ -13,8 +13,15 @@ use vars qw( %ALG %ALG_BY_NAME );
 %ALG = ( 1 => 'ZIP', 2 => 'Zlib' );
 %ALG_BY_NAME = map { $ALG{$_} => $_ } keys %ALG;
 
-sub alg { $ALG{$_[1]} || $_[1] }
-sub alg_id { $ALG_BY_NAME{$_[1]} || $_[1] }
+sub alg {
+    return $_[0]->{__alg} if ref($_[0]);
+    $ALG{$_[1]} || $_[1];
+}
+
+sub alg_id {
+    return $_[0]->{__alg_id} if ref($_[0]);
+    $ALG_BY_NAME{$_[1]} || $_[1];
+}
 
 sub new {
     my $comp = bless { }, shift;
@@ -25,9 +32,12 @@ sub init {
     my $comp = shift;
     my %param = @_;
     if (my $data = $param{Data}) {
-        $comp->{alg} = $param{Alg} || DEFAULT_COMPRESS;
+        my $alg = $param{Alg} || DEFAULT_COMPRESS;
+        $alg = $ALG{$alg} || $alg;
+        $comp->{__alg} = $alg;
+        $comp->{__alg_id} = $ALG_BY_NAME{$alg};
         my %args;
-        if ($comp->{alg} == 1) {
+        if ($comp->{__alg_id} == 1) {
             %args = (-WindowBits => -13, -MemLevel => 8);
         }
         my($d, $status, $compressed);
@@ -53,7 +63,8 @@ sub parse {
     my $class = shift;
     my($buf) = @_;
     my $comp = $class->new;
-    $comp->{alg} = $buf->get_int8;
+    $comp->{__alg_id} = $buf->get_int8;
+    $comp->{__alg} = $ALG{ $comp->{__alg_id} };
     $comp->{data} = $buf->get_bytes($buf->length - $buf->offset);
     $comp;
 }
@@ -61,7 +72,7 @@ sub parse {
 sub save {
     my $comp = shift;
     my $buf = Crypt::OpenPGP::Buffer->new;
-    $buf->put_int8($comp->{alg});
+    $buf->put_int8($comp->{__alg_id});
     $buf->put_bytes($comp->{data});
     $buf->bytes;
 }
@@ -69,7 +80,7 @@ sub save {
 sub decompress {
     my $comp = shift;
     my %args;
-    if ($comp->{alg} == 1) {
+    if ($comp->{__alg_id} == 1) {
         %args = (-WindowBits => -13);
     }
     my($i, $status, $out);

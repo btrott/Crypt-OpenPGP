@@ -1,10 +1,11 @@
-# $Id: 11-encrypt.t,v 1.4 2001/07/29 13:40:33 btrott Exp $
+# $Id: 11-encrypt.t,v 1.5 2001/08/09 05:40:23 btrott Exp $
 
 use Test;
 use Crypt::OpenPGP;
+use Crypt::OpenPGP::Message;
 use strict;
 
-BEGIN { plan tests => 12 }
+BEGIN { plan tests => 17 }
 
 use vars qw( $SAMPLES );
 unshift @INC, 't/';
@@ -74,5 +75,24 @@ $pt = $pgp->decrypt(
                Passphrase => $passphrase,
             );
 ok($pt);
+ok($pt eq $text);
 
+## Now test encrypted-MDC packets.
+
+$ct = $pgp->encrypt(
+               Passphrase => $passphrase,
+               Data       => $text,
+               MDC        => 1,
+            );
+ok($ct);
+my $msg = Crypt::OpenPGP::Message->new;
+$msg->read( Data => $ct );
+ok(ref($msg->{pieces}->[-1]), 'Crypt::OpenPGP::Ciphertext');
+ok($msg->{pieces}->[-1]->{is_mdc});
+
+$pt = $pgp->decrypt(
+               Data       => $ct,
+               Passphrase => $passphrase,
+            );
+ok($pt);
 ok($pt eq $text);

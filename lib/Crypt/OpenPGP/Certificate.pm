@@ -1,4 +1,4 @@
-# $Id: Certificate.pm,v 1.13 2001/07/29 06:04:43 btrott Exp $
+# $Id: Certificate.pm,v 1.14 2001/08/06 21:09:09 btrott Exp $
 
 package Crypt::OpenPGP::Certificate;
 use strict;
@@ -72,6 +72,8 @@ sub key { $_[0]->{key} }
 sub is_secret { $_[0]->{key}->is_secret }
 sub is_subkey { $_[0]->{is_subkey} }
 sub is_protected { $_[0]->{is_protected} }
+sub can_encrypt { $_[0]->{key}->can_encrypt }
+sub can_sign { $_[0]->{key}->can_sign }
 
 sub public_cert {
     my $cert = shift;
@@ -503,6 +505,16 @@ Returns true if the certificate is locked, false otherwise.
 =head2 $cert->is_subkey
 
 Returns true if the certificate is a subkey, false otherwise.
+
+=head2 $cert->can_encrypt
+
+Returns true if the public key algorithm for the certificate I<$cert>
+can perform encryption/decryption, false otherwise.
+
+=head2 $cert->can_sign
+
+Returns true if the public key algorithm for the certificate I<$cert>
+can perform signing/verification, false otherwise.
 
 =head1 AUTHOR & COPYRIGHTS
 

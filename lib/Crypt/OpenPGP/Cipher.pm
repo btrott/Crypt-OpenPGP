@@ -1,4 +1,4 @@
-# $Id: Cipher.pm,v 1.14 2001/07/29 12:47:18 btrott Exp $
+# $Id: Cipher.pm,v 1.15 2001/08/09 05:35:38 btrott Exp $
 
 package Crypt::OpenPGP::Cipher;
 use strict;
@@ -51,6 +51,8 @@ sub init {
 
 sub encrypt { $_[0]->{cipher}->encrypt($_[1]) }
 sub decrypt { $_[0]->{cipher}->decrypt($_[1]) }
+
+sub sync { $_[0]->{cipher}->sync }
 
 sub alg { $_[0]->{__alg} }
 sub alg_id {

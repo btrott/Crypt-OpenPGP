@@ -1,10 +1,10 @@
-# $Id: OpenPGP.pm,v 1.54 2001/07/31 18:54:31 btrott Exp $
+# $Id: OpenPGP.pm,v 1.58 2001/08/09 16:55:14 btrott Exp $
 
 package Crypt::OpenPGP;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.13';
+$VERSION = '0.14';
 
 use Crypt::OpenPGP::Constants qw( DEFAULT_CIPHER );
 use Crypt::OpenPGP::KeyRing;
@@ -56,7 +56,8 @@ use vars qw( %DEFAULTS %COMPAT );
 
     GnuPG => {
               'sign'    => { Digest => 'RIPEMD160', Version => 4 },
-              'encrypt' => { Cipher => 'Rijndael', Compress => 'Zlib' },
+              'encrypt' => { Cipher => 'Rijndael', Compress => 'Zlib',
+                             MDC => 1 },
               'keygen'  => { Type => 'DSA', Cipher => 'Rijndael',
                              Version => 4, Digest => 'RIPEMD160' },
     },
@@ -101,9 +102,9 @@ sub sign {
     unless ($cert = $param{Key}) {
         my $kid = $param{KeyID} or return $pgp->error("No KeyID specified");
         my $ring = Crypt::OpenPGP::KeyRing->new( Filename => $pgp->{SecRing} );
-        (my($kb), $cert) = $ring->find_keyblock_by_keyid(pack 'H*', $kid);
-        return $pgp->error("Could not find secret key with KeyID $kid")
-            unless $kb && $cert;
+        my $kb = $ring->find_keyblock_by_keyid(pack 'H*', $kid) or
+            return $pgp->error("Could not find secret key with KeyID $kid");
+        $cert = $kb->signing_key;
     }
     if ($cert->is_protected) {
         my $pass = $param{Passphrase} or
@@ -206,9 +207,10 @@ sub verify {
     }
     my $key_id = $sig->key_id;
     my $ring = Crypt::OpenPGP::KeyRing->new( Filename => $pgp->{PubRing} );
-    my($kb, $cert) = $ring->find_keyblock_by_keyid($key_id);
-    return $pgp->error("Could not find public key with KeyID " .
-        unpack('H*', $key_id)) unless $kb && $cert;
+    my $kb = $ring->find_keyblock_by_keyid($key_id) or
+        return $pgp->error("Could not find public key with KeyID " .
+            unpack('H*', $key_id));
+    my $cert = $kb->signing_key;
     my $dgst = $sig->hash_data($data) or
         return $pgp->error( $sig->errstr );
     $cert->key->public_key->verify($sig, $dgst) ?
@@ -220,7 +222,7 @@ sub encrypt {
     my %param = @_;
     $pgp->_merge_compat(\%param, 'encrypt') or
         return $pgp->error( $pgp->errstr );
-    my($data, $cert);
+    my($data);
     require Crypt::OpenPGP::Cipher;
     require Crypt::OpenPGP::Ciphertext;
     unless ($data = $param{Data}) {
@@ -228,9 +230,19 @@ sub encrypt {
             return $pgp->error("Need either 'Data' or 'Filename' to encrypt");
         $data = $pgp->_read_files($file) or return $pgp->error($pgp->errstr);
     }
-    my $pt = Crypt::OpenPGP::Plaintext->new( Data => $data,
+    my $ptdata;
+    if ($param{SignKeyID}) {
+        $ptdata = $pgp->sign(
+                         Data       => $data,
+                         KeyID      => $param{SignKeyID},
+                         Compat     => $param{Compat},
+                         Passphrase => $param{SignPassphrase},
+                  );
+    } else {
+        my $pt = Crypt::OpenPGP::Plaintext->new( Data => $data,
                       $param{Filename} ? (Filename => $param{Filename}) : () );
-    my $ptdata = Crypt::OpenPGP::PacketFactory->save($pt);
+        $ptdata = Crypt::OpenPGP::PacketFactory->save($pt);
+    }
     if (my $alg = $param{Compress}) {
         require Crypt::OpenPGP::Compressed;
         $alg = Crypt::OpenPGP::Compressed->alg_id($alg);
@@ -243,23 +255,33 @@ sub encrypt {
     my $key_data = Crypt::Random::makerandom_octet( Length => 32 );
     my $sym_alg = $param{Cipher} ?
         Crypt::OpenPGP::Cipher->alg_id($param{Cipher}) : DEFAULT_CIPHER;
-    my($sym_key);
-    if (($cert = $param{Key}) || ($param{KeyID})) {
+    my(@sym_keys);
+    if ($param{Key} || $param{KeyID}) {
         require Crypt::OpenPGP::SessionKey;
-        unless ($cert) {
-            my $kid = $param{KeyID};
+        my @keys;
+        if ($param{KeyID}) {
+            my @kid = ref $param{KeyID} eq 'ARRAY' ? @{$param{KeyID}} :
+                                                       $param{KeyID};
             my $ring = Crypt::OpenPGP::KeyRing->new( Filename =>
                 $pgp->{PubRing} );
-            (my($kb), $cert) = $ring->find_keyblock_by_keyid(pack 'H*', $kid);
-            return $pgp->error("Could not find public key with KeyID $kid")
-                unless $kb && $cert;
+            for (@kid) {
+                my $kb = $ring->find_keyblock_by_keyid(pack 'H*', $_) or
+                    return $pgp->error("Could not find pubkey with KeyID $_");
+                push @keys, $kb->encrypting_key;
+            }
         }
-        $sym_key = Crypt::OpenPGP::SessionKey->new(
-                            Key    => $cert,
-                            SymKey => $key_data,
-                            Cipher => $sym_alg,
-                      ) or
-            return $pgp->error( Crypt::OpenPGP::SessionKey->errstr );
+        if ($param{Key}) {
+            push @keys, ref $param{Key} eq 'ARRAY' ? @{$param{Key}} :
+                                                       $param{Key};
+        }
+        for my $key (@keys) { 
+            push @sym_keys, Crypt::OpenPGP::SessionKey->new(
+                                Key    => $key,
+                                SymKey => $key_data,
+                                Cipher => $sym_alg,
+                          ) or
+                return $pgp->error( Crypt::OpenPGP::SessionKey->errstr );
+        }
     }
     elsif (my $pass = $param{Passphrase}) {
         require Crypt::OpenPGP::SKSessionKey;
@@ -267,7 +289,7 @@ sub encrypt {
         my $s2k = Crypt::OpenPGP::S2k->new('Salt_Iter');
         my $keysize = Crypt::OpenPGP::Cipher->new($sym_alg)->keysize;
         $key_data = $s2k->generate($pass, $keysize);
-        $sym_key = Crypt::OpenPGP::SKSessionKey->new(
+        push @sym_keys, Crypt::OpenPGP::SKSessionKey->new(
                             Passphrase => $pass,
                             SymKey     => $key_data,
                             Cipher     => $sym_alg,
@@ -278,11 +300,12 @@ sub encrypt {
         return $pgp->error("Need something to encrypt with");
     }
     my $enc = Crypt::OpenPGP::Ciphertext->new(
+                        MDC    => $param{MDC},
                         SymKey => $key_data,
                         Data   => $ptdata,
                         Cipher => $sym_alg,
                   );
-    my $enc_data = Crypt::OpenPGP::PacketFactory->save($sym_key, $enc);
+    my $enc_data = Crypt::OpenPGP::PacketFactory->save(@sym_keys, $enc);
     if ($param{Armour}) {
         require Crypt::OpenPGP::Armour;
         $enc_data = Crypt::OpenPGP::Armour->armour(
@@ -296,6 +319,7 @@ sub encrypt {
 sub decrypt {
     my $pgp = shift;
     my %param = @_;
+    my $wants_verify = wantarray;
     my($data);
     unless ($data = $param{Data}) {
         my $file = $param{Filename} or
@@ -320,17 +344,19 @@ sub decrypt {
                 if ($sym_key->key_id ne pack 'H*', $param{KeyID}) { 
                     if (ref($pieces[0] ne 'Crypt::OpenPGP::SessionKey')) { 
                         return $pgp->error("Can't find key with ID " .
-                        unpack('H*', $sym_key->key_id));
+                            unpack('H*', $sym_key->key_id));
                     } 
                 } else { 
-                    shift @pieces while ref($pieces[0]) eq 'Crypt::OpenPGP::SessionKey';
+                    shift @pieces
+                        while ref($pieces[0]) eq 'Crypt::OpenPGP::SessionKey';
                 }
              } else { last }
         }
         my $ring = Crypt::OpenPGP::KeyRing->new( Filename => $pgp->{SecRing} );
-        my($kb, $cert) = $ring->find_keyblock_by_keyid($sym_key->key_id);
-        return $pgp->error("Can't find key with ID " .
-            unpack('H*', $sym_key->key_id)) unless $kb && $cert;
+        my $kb = $ring->find_keyblock_by_keyid($sym_key->key_id) or
+            return $pgp->error("Can't find key with ID " .
+                unpack('H*', $sym_key->key_id));
+        my $cert = $kb->encrypting_key;
         if ($cert->is_protected) {
             my $pass = $param{Passphrase} or
                 return $pgp->error("Need passphrase to decrypt secret key");
@@ -353,16 +379,25 @@ sub decrypt {
     my $buf = Crypt::OpenPGP::Buffer->new;
     $buf->append($data);
     my $pt = Crypt::OpenPGP::PacketFactory->parse($buf);
+    my $valid;
+    $pgp->error("No Signature");
     if (ref($pt) eq 'Crypt::OpenPGP::Compressed') {
         $data = $pt->decompress or
             return $pgp->error("Decompression error: " . $pt->errstr);
-        $buf = Crypt::OpenPGP::Buffer->new;
-        $buf->append($data);
-        while (ref($pt) ne "Crypt::OpenPGP::Plaintext") { 
-            $pt = Crypt::OpenPGP::PacketFactory->parse($buf);
+        my $msg = Crypt::OpenPGP::Message->new;
+        $msg->read( Data => $data );
+        my @pieces = @{ $msg->{pieces} };
+        if (ref($pieces[0]) eq 'Crypt::OpenPGP::OnePassSig' ||
+            ref($pieces[0]) eq 'Crypt::OpenPGP::Signature') {
+            $pt = $pieces[1];
+            if ($wants_verify) {
+                $valid = $pgp->verify( Signature => $data );
+            }
+        } else {
+            $pt = $pieces[0];
         }
     }
-    $pt->data;
+    $wants_verify ? ($pt->data, $valid) : $pt->data;
 }
 
 sub keygen {
@@ -537,19 +572,22 @@ formats they support.
 
 =item * PGP2
 
-Encryption: symmetric cipher = C<IDEA>, compression = C<ZIP>
+Encryption: symmetric cipher = C<IDEA>, compression = C<ZIP>,
+modification detection code (MDC) = C<0>
 
 Signing: digest = C<MD5>, packet format = version 3
 
 =item * PGP5
 
-Encryption: symmetric cipher = C<3DES>, compression = C<ZIP>
+Encryption: symmetric cipher = C<3DES>, compression = C<ZIP>,
+modification detection code (MDC) = C<0>
 
 Signing: digest = C<SHA-1>, packet format = version 3
 
 =item * GnuPG
 
-Encryption: symmetric cipher = C<Rijndael>, compression = C<Zlib>
+Encryption: symmetric cipher = C<Rijndael>, compression = C<Zlib>,
+modification detection code (MDC) = C<1>
 
 Signing: digest = C<RIPE-MD/160>, packet format = version 4
 
@@ -596,6 +634,10 @@ symmetric ciphers. In the first case, the session key can only be
 unlocked by someone with the corresponding secret key; in the second, it
 can only be unlocked by someone who knows the passphrase.
 
+Given the parameter I<SignKeyID> (see below), I<encrypt> will first sign
+the message before encrypting it, adding a Signature packet to the
+encrypted plaintext.
+
 Returns a block of data containing two PGP packets: the encrypted
 symmetric key and the encrypted data.
 
@@ -629,8 +671,14 @@ data in I<Data> overrides that in I<Filename>.
 
 The ID of the public key that should be used to decrypt the symmetric
 key. In other words, the ID of the key with which the message should
-be encrypted. The value of the key ID should be specified as a 16-digit
-hexadecimal number.
+be encrypted. The value of the key ID should be specified as either
+an 8-digit or 16-digit hexadecimal number.
+
+If you wish to encrypt the message for multiple recipients, the value
+of I<KeyID> should be a reference to a list of key IDs (as defined
+above). For each ID in the list, the public key will be looked up
+in your public keyring, and an encrypted session key packet will be
+added to the encrypted message.
 
 This argument is optional; if not provided you should provide the
 I<Passphrase> option (below) to perform symmetric-key encryption when
@@ -673,6 +721,37 @@ can be useful when you need to send data through email, for example.
 
 By default the returned data is not armoured.
 
+=item * SignKeyID
+
+If you wish to sign the plaintext message before encrypting it, provide
+I<encrypt> with the I<SignKeyID> parameter and give it a key ID with
+which the message can be signed. This allows recipients of your message
+to verify its validity.
+
+By default messages not signed.
+
+=item * SignPassphrase
+
+The passphrase to unlock the secret key to be used when signing the
+message.
+
+If you are signing the message--that is, if you have provided the
+I<SignKeyID> parameter--this argument is required.
+
+=item * MDC
+
+When set to a true value, instructs I<encrypt> to use encrypted MDC
+(modification detection code) packets instead of standard encrypted
+data packets. These are a newer form of encrypted data packets that
+are followed by a C<SHA-1> hash of the plaintext data. This prevents
+attacks that modify the encrypted text by using a message digest to
+detect changes.
+
+By default I<MDC> is set to C<0>, and I<encrypt> generates standard
+encrypted data packets. Set it to a true value to turn on MDC packets.
+Note that I<MDC> will automatically be turned on if you are using a
+I<Compat> mode that is known to support it.
+
 =back
 
 =head2 $pgp->decrypt( %args )
@@ -682,9 +761,38 @@ returned from I<encrypt>, in either armoured or non-armoured form.
 This is compatible with all other implementations of PGP: the output
 of their encryption should serves as the input to this method.
 
-Returns the plaintext (that is, the decrypted ciphertext).
+When called in scalar context, returns the plaintext (that is, the
+decrypted ciphertext), or C<undef> on failure. When called in list
+context, returns a two-element list containing the plaintext and the
+result of signature verification (see next paragraph), or the empty
+list on failure. Either of the failure conditions listed here indicates
+that decryption failed.
 
-On failure returns C<undef>.
+If I<decrypt> is called in list context, and the encrypted text
+contains a signature over the plaintext, I<decrypt> will attempt to
+verify the signature and will return the result of that verification
+as the second element in the return list. If you call I<decrypt> in
+list context and the ciphertext does I<not> contain a signature, that
+second element will be C<undef>, and the I<errstr> will be set to
+the string C<No Signature>. The second element in the return list can
+have one of three possible values: C<undef>, meaning that either an
+error occurred in verifying the signature, I<or> the ciphertext did
+not contain a signature; C<0>, meaning that the signature is invalid;
+or a true value of either the signer's user ID or C<1>, if the user ID
+cannot be determined. Note that these are the same values returned from
+I<verify> (below).
+
+For example, to decrypt a message that may contain a signature that you
+want verified, you might use code like this:
+
+    my($pt, $validity) = $pgp->decrypt( ... );
+    die "Decryption failed: ", $pgp->errstr unless $pt;
+    die "Signature verification failed: ", $pgp->errstr
+        unless defined $validity || $pgp->errstr ne 'No Signature';
+
+This checks for errors in decryption, as well as errors in signature
+verification, excluding the error denoting that the plaintext was
+not signed.
 
 I<%args> can contain:
 
@@ -809,8 +917,10 @@ The default value is C<4>, although this could change in the future.
 
 =head2 $pgp->verify( %args )
 
-Verifies a digital signature. Returns true on success, C<undef> on
-failure. The 'true' value returned on success will be, if available,
+Verifies a digital signature. Returns true for a valid signature, C<0>
+for an invalid signature, and C<undef> if an error occurs (in which
+case you should call I<errstr> to determine the source of the error).
+The 'true' value returned for a successful signature will be, if available,
 the PGP User ID of the person who created the signature. If that
 value is unavailable, the return value will be C<1>.
 

@@ -1,4 +1,4 @@
-# $Id: Secret.pm,v 1.2 2001/07/21 06:54:28 btrott Exp $
+# $Id: Secret.pm,v 1.3 2001/08/09 04:26:33 btrott Exp $
 
 package Crypt::OpenPGP::Key::Secret;
 use strict;
@@ -15,7 +15,7 @@ sub public_key {
     my @pub = $key->public_props;
     my $pub = Crypt::OpenPGP::Key::Public->new($key->alg);
     for my $e (@pub) {
-        $pub->$e($key->$e);
+        $pub->$e($key->$e());
     }
     $pub;
 }

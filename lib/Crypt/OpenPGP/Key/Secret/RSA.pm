@@ -1,4 +1,4 @@
-# $Id: RSA.pm,v 1.8 2001/07/26 02:34:41 btrott Exp $
+# $Id: RSA.pm,v 1.9 2001/08/06 07:30:48 btrott Exp $
 
 package Crypt::OpenPGP::Key::Secret::RSA;
 use strict;
@@ -17,6 +17,8 @@ sub sig_props { qw( c ) }
 *size = \&Crypt::OpenPGP::Key::Public::RSA::size;
 *encode = \&Crypt::OpenPGP::Key::Public::RSA::encode;
 *keygen = \&Crypt::OpenPGP::Key::Public::RSA::keygen;
+*can_encrypt = \&Crypt::OpenPGP::Key::Public::RSA::can_encrypt;
+*can_sign = \&Crypt::OpenPGP::Key::Public::RSA::can_sign;
 
 sub init {
     my $key = shift;

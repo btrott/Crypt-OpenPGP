@@ -1,6 +1,37 @@
-$Id: Changes,v 1.38 2001/07/31 18:54:30 btrott Exp $
+$Id: Changes,v 1.43 2001/08/09 16:55:01 btrott Exp $
 
 Revision history for Crypt::OpenPGP
+
+0.14  2001.08.09
+    - Crypt::OpenPGP::CFB now works in both standard and PGP-variant
+      mode (where PGP-variant is the slightly strange mode with the
+      resyncs). Support added via a 'sync' method to manually resync.
+    - Added support for encrypted-MDC packets, a more secure variant
+      on standard encrypted data packets. Encrypted-MDC packets are
+      followed by a SHA-1 hash of the plaintext so that modifications
+      to the ciphertext can be detected.
+    - Added support for writing version-4 packet headers to
+      Crypt::OpenPGP::PacketFactory.
+    - Added signing capabilities to Crypt::OpenPGP::encrypt, and
+      verification to Crypt::OpenPGP::decrypt. This lets you create
+      encrypted & signed messages, as well as decrypt & verify such
+      messages. For this purpose, SignKeyID and SignPassphrase have
+      been added as params to 'encrypt'.
+    - KeyRing::find_keyblock_by_keyid changed behavior of return value
+      when called in list context. It now returns all keyblocks with
+      keys whose key IDs "matched" the provided key ID (rather than the
+      matched keyblock and the matched certificate, as before).
+    - Added KeyBlock::encrypting_key and KeyBlock::signing_key; all
+      high-level Crypt::OpenPGP methods now use these methods instead
+      of the list-context find_keyblock_by_keyid to find the
+      appropriate key to use.
+    - Crypt::OpenPGP::encrypt now accepts multiple key IDs, for
+      encrypting messages to multiple recipients. Thanks to Vipul
+      for the idea and patch.
+    - KeyRing::find_keyblock_by_keyid now can perform lookups using
+      8 hex-digit key IDs (as opposed to the standard 16 hex-digit
+      IDs). Thanks to Vipul for the idea and patch (reworked).
+    - Fixed some compatibility (syntax) issues when using perl 5.005_03.
 
 0.13  2001.07.31
     - Fix handling of partial length headers.

@@ -1,4 +1,4 @@
-# $Id: Util.pm,v 1.7 2001/07/30 05:37:37 btrott Exp $
+# $Id: Util.pm,v 1.8 2001/08/09 04:59:09 btrott Exp $
 
 package Crypt::OpenPGP::Util;
 use strict;
@@ -26,7 +26,7 @@ sub mp2bin {
         my $r = $p % $base;
         $p = ($p-$r) / $base;
         my $buf = pack 'N', $r;
-        if (!$p) {
+        if ($p == 0) {
             $buf = $r >= 16777216 ? $buf :
                    $r >= 65536 ? substr($buf, -3, 3) :
                    $r >= 256   ? substr($buf, -2, 2) :

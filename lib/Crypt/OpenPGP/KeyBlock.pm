@@ -1,4 +1,4 @@
-# $Id: KeyBlock.pm,v 1.4 2001/07/29 04:32:02 btrott Exp $
+# $Id: KeyBlock.pm,v 1.5 2001/08/06 21:12:17 btrott Exp $
 
 package Crypt::OpenPGP::KeyBlock;
 use strict;
@@ -13,13 +13,51 @@ sub primary_uid {
 sub key { $_[0]->get('Crypt::OpenPGP::Certificate')->[0] }
 sub subkey { $_[0]->get('Crypt::OpenPGP::Certificate')->[1] }
 
-sub new { bless { pkt => { } }, $_[0] }
+sub encrypting_key {
+    my $kb = shift;
+    my $keys = $kb->get('Crypt::OpenPGP::Certificate');
+    return unless $keys && @$keys;
+    for my $key (@$keys) {
+        return $key if $key->can_encrypt;
+    }
+}
+
+sub signing_key {
+    my $kb = shift;
+    my $keys = $kb->get('Crypt::OpenPGP::Certificate');
+    return unless $keys && @$keys;
+    for my $key (@$keys) {
+        return $key if $key->can_sign;
+    }
+}
+
+sub key_by_id { $_[0]->{keys_by_id}->{$_[1]} ||
+                $_[0]->{keys_by_short_id}->{$_[1]} }
+
+sub new {
+    my $class = shift;
+    my $kb = bless { }, $class;
+    $kb->init(@_);
+}
+
+sub init {
+    my $kb = shift;
+    $kb->{pkt} = { };
+    $kb->{order} = [ ];
+    $kb->{keys_by_id} = { };
+    $kb;
+}
 
 sub add {
     my $kb = shift;
     my($pkt) = @_;
     push @{ $kb->{pkt}->{ ref($pkt) } }, $pkt;
     push @{ $kb->{order} }, $pkt;
+    if (ref($pkt) eq 'Crypt::OpenPGP::Certificate') {
+        my $kid = $pkt->key_id;
+        $kb->{keys_by_id}{ $kid } = $pkt;
+        $kb->{keys_by_short_id}{ substr $kid, -4, 4 } = $pkt;
+    }
 }
 
 sub get { $_[0]->{pkt}->{ $_[1] } }
@@ -59,9 +97,25 @@ associated with each keyblock.
 
 Constructs a new key block object and returns that object.
 
+=head2 $kb->encrypting_key
+
+Returns the key that performs encryption in this key block. For example,
+if a DSA key is the master key in a key block with an ElGamal subkey,
+I<encrypting_key> returns the ElGamal subkey certificate, because DSA
+keys do not perform encryption/decryption.
+
+=head2 $kb->signing_key
+
+Returns the key that performs signing in this key block. For example,
+if a DSA key is the master key in a key block with an ElGamal subkey,
+I<encrypting_key> returns the DSA master key certificate, because DSA
+supports signing/verification.
+
 =head2 $kb->add($packet)
 
-Adds the packet I<$packet> to the key block.
+Adds the packet I<$packet> to the key block. If the packet is a PGP
+certificate (a I<Crypt::OpenPGP::Certificate> object), the certificate
+is also added to the internal key-management mechanism.
 
 =head2 $kb->save
 

@@ -1,4 +1,4 @@
-# $Id: CFB.pm,v 1.4 2001/07/28 19:50:18 btrott Exp $
+# $Id: CFB.pm,v 1.5 2001/08/09 05:35:27 btrott Exp $
 
 # This code based slightly on the Systemics Crypt::CFB.
 # Parts Copyright (C) 1995, 1996 Systemics Ltd (http://www.systemics.com/)
@@ -22,20 +22,27 @@ sub init {
     $c;
 }
 
+sub sync { $_[0]->{unused} = '' }
+
 sub encrypt {
     my $c = shift;
     my($data) = @_;
     my $ret = '';
     my $iv = $c->{iv};
+    my $out = $c->{unused} || '';
+    my $size = length $out;
     while ($data) {
-        my $out = $c->{cipher}->encrypt($iv);
-        my $size = $c->{blocksize};
+        unless ($size) {
+            $out = $c->{cipher}->encrypt($iv);
+            $size = $c->{blocksize};
+        }
         my $in = substr $data, 0, $size, '';
         $size -= (my $got = length $in);
         $iv .= ($in ^= substr $out, 0, $got, '');
         substr $iv, 0, $got, '';
         $ret .= $in;
     }
+    $c->{unused} = $out;
     $c->{iv} = $iv;
     $ret;
 }
@@ -45,14 +52,19 @@ sub decrypt {
     my($data) = @_;
     my $ret = '';
     my $iv = $c->{iv};
+    my $out = $c->{unused} || '';
+    my $size = length $out;
     while ($data) {
-        my $out = $c->{cipher}->encrypt($iv);
-        my $size = $c->{blocksize};
+        unless ($size) {
+            $out = $c->{cipher}->encrypt($iv);
+            $size = $c->{blocksize};
+        }
         my $in = substr $data, 0, $size, '';
         $size -= (my $got = length $in);
         substr $iv .= $in, 0, $got, '';
         $ret .= ($in ^= substr $out, 0, $got, '');
     }
+    $c->{unused} = $out;
     $c->{iv} = $iv;
     $ret;
 }
