@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: pgplet,v 1.10 2002/02/26 05:05:52 btrott Exp $
+# $Id: pgplet,v 1.12 2002/07/15 07:08:20 btrott Exp $
 
 use lib 'lib';
 
@@ -16,7 +16,7 @@ GetOptions(\%opts, "sign|s", "encrypt|e", "detach-sign|b",
                    "list-public-keys", "list-secret-keys",
                    "fingerprint", "keyring=s", "secret-keyring=s",
                    "recipient|r=s@", "armour|a", "clearsign",
-                   "symmetric|c",
+                   "symmetric|c", "list-packets",
                    "enarmour", "dearmour", "compat=s");
 
 my %arg;
@@ -32,7 +32,7 @@ my $pgp = Crypt::OpenPGP->new( %arg ) or
 
 my @args = ($pgp, \%opts, \@ARGV);
 
-if ($opts{'list-keys'} || $opts{'list-public-keys'}) {
+if ($opts{'list-keys'} || $opts{'list-public-keys'} || $opts{fingerprint}) {
     do_list_keys(@args);
 } elsif ($opts{'list-secret-keys'}) {
     do_list_keys(@args, 1);
@@ -54,6 +54,24 @@ if ($opts{'list-keys'} || $opts{'list-public-keys'}) {
     do_enarmour(@args);
 } elsif ($opts{dearmour}) {
     do_dearmour(@args);
+} elsif ($opts{'list-packets'}) {
+    do_list_packets(@args);
+} else {
+    do_wim(@args);
+}
+
+sub do_wim {
+    my($pgp, $opts, $args) = @_;
+    my $file = shift @$args or die "usage: $0 <file>";
+    my $res = $pgp->handle( Filename => $file ) or die $pgp->errstr;
+    if (defined $res->{Plaintext}) {
+        print $res->{Plaintext};
+    }
+    if (defined $res->{Validity}) {
+        my $v = $res->{Validity};
+        print STDERR $v ? qq(Good signature from "$v".\n) :
+            "Bad signature.\n";
+    }
 }
 
 sub do_list_keys {
@@ -195,7 +213,7 @@ sub do_verify {
     my($pgp, $opts, $args) = @_;
     my($sigfile, @files) = @$args;
     my $valid = $pgp->verify( SigFile => $sigfile, Files => \@files );
-    return unless $valid;
+    die $pgp->errstr unless defined $valid;
     print $valid ? qq(Good signature from "$valid".\n) : "Bad signature.\n";
 }
 
@@ -215,6 +233,22 @@ sub do_dearmour {
     require Crypt::OpenPGP::Armour;
     my $data = Crypt::OpenPGP::Armour->unarmour($pgp->_read_files($file));
     print $data->{Data};
+}
+
+sub do_list_packets {
+    my($pgp, $opts, $args) = @_;
+    my $file = shift @$args or die "usage: $0 --list-packets <file>";
+    require Crypt::OpenPGP::Message;
+    my $msg = Crypt::OpenPGP::Message->new( Filename => $file )
+        or die Crypt::OpenPGP::Message->errstr;
+    my @pieces = $msg->pieces;
+    for my $pkt (@pieces) {
+        if ($pkt->can('display')) {
+            print $pkt->display;
+        } else {
+            print ref($pkt), "\n";
+        }
+    }
 }
 
 sub passphrase_cb {

@@ -1,15 +1,25 @@
-$Id: ToDo,v 1.33 2002/02/27 06:08:08 btrott Exp $
+$Id: ToDo,v 1.35 2002/07/15 21:24:32 btrott Exp $
 
 Crypt::OpenPGP todo
 -------------------
+* add test for uncompressed decrypted packets
 * KeyRing support multiple keyrings so that lookups occur over multiple
   rings.
 * support for ElGamal signing
 * smart detection and description of arbitrary files, eg. pass in some
   data and give back 'RSA signed message, Version 3, probably PGP2'
 * subkey generation
-* keyserver capabilities, key import
 * keyblock merging keys, signatures, user IDs
+  1. read keyblock
+  2. look up public key by key ID in existing keyring(s)
+  3. if key does not exist, append it to the keyring
+  4. compare keys (need a new Key::equal method)
+  5. load original keyblock
+  6. compare signatures
+  7. add the signatures
+  8. add the user IDs
+  9. add the subkeys
+  10. add the subkey certificates
 * test suite: tests for: compressed signatures, compressed encrypted data
   packets, more versions of PGP, more pkalgs, subpackets
 * improve subpacket system: constants for types, better integration into

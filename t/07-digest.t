@@ -1,13 +1,13 @@
-# $Id: 07-digest.t,v 1.1 2001/07/29 09:46:50 btrott Exp $
+# $Id: 07-digest.t,v 1.2 2002/05/07 04:04:55 btrott Exp $
 
 use Test;
 use Crypt::OpenPGP::Digest;
 use strict;
 
 my %TESTDATA = (
-    1 => [ 16, 'b39a3a792064c8d0e8ed98d3f9096fab' ],
-    2 => [ 20, '5eba31e3a9be283ab243fb018952febee1cd790d' ],
-    3 => [ 20, '1b710d273e1c69119be855108e692f931178d67a' ],
+    1 => [ 16, '6abb1d8ca3f00772440701359a8b2fcf' ],
+    2 => [ 20, '37316c7b5cd5c1953ba5d9752c4dabe959c8af53' ],
+    3 => [ 20, 'd3d53bea7a263f0086f6a1584c52dfae9e494ce8' ],
 );
 
 my $data = <<TEXT;
@@ -18,6 +18,7 @@ With every goddess a let down
 Every idol a bring down
 It gets you down
 But the search for perfection
+Your own predilection
 Goes on and on and on and on
 TEXT
 

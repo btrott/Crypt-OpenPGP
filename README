@@ -1,4 +1,4 @@
-$Id: README,v 1.7 2001/09/16 04:48:53 btrott Exp $
+$Id: README,v 1.8 2002/07/12 23:59:37 btrott Exp $
 
 This is Crypt::OpenPGP. It provides a pure-Perl implementation of the
 OpenPGP standard, including support for all versions of PGP and
@@ -21,6 +21,7 @@ at least one of the following modules:
     * Crypt::Blowfish (for Blowfish)
     * Crypt::Twofish (for Twofish)
     * Crypt::Rijndael (for Rijndael)
+    * Crypt::CAST5_PP (for CAST5)
 
 Depending on which digest algorithms you use, you will require at
 least one of the following modules:

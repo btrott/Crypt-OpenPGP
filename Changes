@@ -1,6 +1,29 @@
-$Id: Changes,v 1.65 2002/02/27 06:08:29 btrott Exp $
+$Id: Changes,v 1.66 2002/07/15 21:24:49 btrott Exp $
 
 Revision history for Crypt::OpenPGP
+
+1.01 2002.07.15
+    - Added Crypt::OpenPGP::handle, a DWIM wrapper around the other
+      high-level interface methods. Given data, it determines whether the
+      data needs to be decrypted, verified, or both. And then it does what
+      it's supposed to do.
+    - Added Crypt::OpenPGP::Signature::timestamp to return the created-on
+      time for a signature. Also, Crypt::OpenPGP::decrypt and
+      Crypt::OpenPGP::verify now return the Crypt::OpenPGP::Signature object
+      if called in list context (and, in the case of decrypt, if there is
+      a signature). Thanks to Erik Arneson for the patches.
+    - Fixed a bug in decrypt with uncompressed encrypted signed data.
+      Thanks to Erik Arneson for the spot.
+    - Fixed a bug in Crypt::OpenPGP::Message with clearsigned messages, if
+      the text and signature were contained in a block of text containing
+      more PGP messages/signatures.
+    - Fixed a nasty, evil, stupid compatibility bug with canonical text.
+      Namely, pgp2 and pgp5 do not trim trailing whitespace from "canonical
+      text" signatures, only from cleartext signatures. This was causing
+      invalid signatures which should not have been invalid. Thanks to
+      Erik Arneson for the spot.
+    - Added Crypt::OpenPGP::KeyServer, which does lookups against an HKP
+      keyserver.
 
 1.00 2002.02.26
     - CAST5 is now supported thanks to Crypt::CAST5_PP from Bob Mathews.

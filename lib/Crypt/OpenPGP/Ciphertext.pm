@@ -1,4 +1,4 @@
-# $Id: Ciphertext.pm,v 1.15 2001/08/09 18:57:35 btrott Exp $
+# $Id: Ciphertext.pm,v 1.16 2002/07/15 07:07:30 btrott Exp $
 
 package Crypt::OpenPGP::Ciphertext;
 use strict;
@@ -67,6 +67,16 @@ sub save {
     }
     $buf->put_bytes($enc->{ciphertext});
     $buf->bytes;
+}
+
+sub display {
+    my $enc = shift;
+    my $str = ":encrypted data packet:\n" .
+              "        length: " . length($enc->{ciphertext}) . "\n";
+    if ($enc->{is_mdc}) {
+        $str .= "        is_mdc: $enc->{version}\n";
+    }
+    $str;
 }
 
 sub decrypt {

@@ -1,4 +1,4 @@
-# $Id: Config.pm,v 1.5 2001/08/30 04:10:19 btrott Exp $
+# $Id: Config.pm,v 1.6 2002/07/12 23:53:25 btrott Exp $
 
 package Crypt::OpenPGP::Config;
 use strict;
@@ -85,6 +85,7 @@ sub directives {
         '3DES' => 'DES3',             BLOWFISH => 'Blowfish',
         RIJNDAEL => 'Rijndael',       RIJNDAEL192 => 'Rijndael192',
         RIJNDAEL256 => 'Rijndael256', TWOFISH => 'Twofish',
+        CAST5 => 'CAST5',
     );
     sub _set_cipher { $_[0]->{o}{Cipher} = $Ciphers{$_[2]} }
 

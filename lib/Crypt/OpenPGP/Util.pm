@@ -1,4 +1,4 @@
-# $Id: Util.pm,v 1.8 2001/08/09 04:59:09 btrott Exp $
+# $Id: Util.pm,v 1.9 2002/07/12 23:52:33 btrott Exp $
 
 package Crypt::OpenPGP::Util;
 use strict;
@@ -64,9 +64,16 @@ sub dash_unescape {
 sub canonical_text {
     my($text) = @_;
     my @lines = split /\n/, $text, -1;
-    pop @lines if $lines[-1] eq '';
     for my $l (@lines) {
-        $l =~ s/[ \t\r\n]*$//;
+## pgp2 and pgp5 do not trim trailing whitespace from "canonical text"
+## signatures, only from cleartext signatures.
+## See:
+##   http://cert.uni-stuttgart.de/archive/ietf-openpgp/2000/01/msg00033.html
+        if ($Crypt::OpenPGP::Globals::Trim_trailing_ws) {
+            $l =~ s/[ \t\r\n]*$//;
+        } else {
+            $l =~ s/[\r\n]*$//;
+        }
     }
     join "\r\n", @lines;
 }

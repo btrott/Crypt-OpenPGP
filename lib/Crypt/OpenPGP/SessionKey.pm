@@ -1,11 +1,11 @@
-# $Id: SessionKey.pm,v 1.11 2001/07/29 06:29:37 btrott Exp $
+# $Id: SessionKey.pm,v 1.12 2002/07/15 07:07:30 btrott Exp $
 
 package Crypt::OpenPGP::SessionKey;
 use strict;
 
 use Crypt::OpenPGP::Constants qw( DEFAULT_CIPHER );
 use Crypt::OpenPGP::Key::Public;
-use Crypt::OpenPGP::Util qw( mp2bin bin2mp );
+use Crypt::OpenPGP::Util qw( mp2bin bin2mp bitsize );
 use Crypt::OpenPGP::Buffer;
 use Crypt::OpenPGP::ErrorHandler;
 use base qw( Crypt::OpenPGP::ErrorHandler );
@@ -65,6 +65,16 @@ sub save {
         $buf->put_mp_int($mp);
     }
     $buf->bytes;
+}
+
+sub display {
+    my $key = shift;
+    my $str = sprintf ":pubkey enc packet: version %d, algo %d, keyid %s\n",
+        $key->{version}, $key->{pk_alg}, uc unpack('H*', $key->{key_id});
+    for my $mp (values %{ $key->{C} }) {
+        $str .= sprintf "        data: [%d bits]\n", bitsize($mp);
+    }
+    $str;
 }
 
 sub decrypt {

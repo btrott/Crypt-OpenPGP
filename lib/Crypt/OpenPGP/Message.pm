@@ -1,4 +1,4 @@
-# $Id: Message.pm,v 1.10 2002/01/29 01:19:33 btrott Exp $
+# $Id: Message.pm,v 1.11 2002/07/12 23:53:14 btrott Exp $
 
 package Crypt::OpenPGP::Message;
 use strict;
@@ -43,7 +43,10 @@ sub read {
         require Crypt::OpenPGP::Util;
         require Crypt::OpenPGP::Plaintext;
         my($head, $text, $sig) = $data =~
-            m!-----BEGIN [^\n\-]+-----(.*?\n\n)?(.+)(-----BEGIN.*?END.*?-----)!s;
+            m!-----BEGIN PGP SIGNED MESSAGE-----(.*?\n\n)?(.+?)(-----BEGIN PGP SIGNATURE.*?END PGP SIGNATURE-----)!s;
+        ## In clear-signed messages, the line ending before the signature
+        ## is not considered part of the signed text.
+        $text =~ s!\r?\n$!!;
         $pt = Crypt::OpenPGP::Plaintext->new(
                               Data => Crypt::OpenPGP::Util::dash_unescape($text),
                               Mode => 't',

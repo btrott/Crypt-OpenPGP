@@ -1,4 +1,4 @@
-# $Id: Cipher.pm,v 1.16 2002/02/26 04:49:29 btrott Exp $
+# $Id: Cipher.pm,v 1.17 2002/07/12 23:53:37 btrott Exp $
 
 package Crypt::OpenPGP::Cipher;
 use strict;
@@ -163,7 +163,7 @@ All cipher objects are subclasses of this class and share a common
 interface; when creating a new cipher object, the object is blessed
 into the subclass to take on algorithm-specific functionality.
 
-A I<Crypt::OpenPGP::Cipher> objectt is a wrapper around a
+A I<Crypt::OpenPGP::Cipher> object is a wrapper around a
 I<Crypt::OpenPGP::CFB> object, which in turn wraps around the actual
 cipher implementation (eg. I<Crypt::Blowfish> for a Blowfish cipher).
 This allows all ciphers to share a common interface and a simple
@@ -180,7 +180,7 @@ a cipher name is recommended, for the simple reason that it is easier
 to understand quickly (not everyone knows the cipher IDs).
 
 Valid cipher names are: C<IDEA>, C<DES3>, C<Blowfish>, C<Rijndael>,
-C<Rijndael192>, C<Rijndael256>, and C<Twofish>.
+C<Rijndael192>, C<Rijndael256>, C<Twofish>, and C<CAST5>.
 
 Returns the new cipher object on success. On failure returns C<undef>;
 the caller should check for failure and call the class method I<errstr>

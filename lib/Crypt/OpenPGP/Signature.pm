@@ -1,4 +1,4 @@
-# $Id: Signature.pm,v 1.16 2002/02/26 04:49:48 btrott Exp $
+# $Id: Signature.pm,v 1.17 2002/07/12 23:52:57 btrott Exp $
 
 package Crypt::OpenPGP::Signature;
 use strict;
@@ -19,6 +19,13 @@ sub key_id {
         $sig->{key_id} = $sp->{data};
     }
     $sig->{key_id};
+}
+
+sub timestamp {
+    my $sig = shift;
+    $sig->{version} < 4 ?
+        $sig->{timestamp} :
+        $sig->find_subpacket(2)->{data};
 }
 
 sub find_subpacket {
@@ -361,9 +368,49 @@ data in the buffer.
 
 =head2 $sig->hash_data(@data)
 
+Prepares a digital hash of the packets in I<@data>; the hashing method
+depends on the type of packets in I<@data>, and the hashing algorithm used
+depends on the algorithm associated with the I<Crypt::OpenPGP::Signature>
+object I<$sig>. This digital hash is then signed to produce the signature
+itself.
+
+You generally do not need to use this method unless you have not passed in
+the I<Data> parameter to I<new> (above).
+
+There are two possible packet types that can be included in I<@data>:
+
+=over 4
+
+=item * Key Certificate and User ID
+
+An OpenPGP keyblock contains a key certificate and a signature of the
+public key and user ID made by the secret key. This is called a
+self-signature. To produce a self-signature, I<@data> should contain two
+packet objects: a I<Crypt::OpenPGP::Certificate> object and a
+I<Crypt::OpenPGP::UserID> object. For example:
+
+    my $hash = $sig->hash_data($cert, $id)
+        or die $sig->errstr;
+
+=item * Plaintext
+
+To sign a piece of plaintext, pass in a I<Crypt::OpenPGP::Plaintext> object.
+This is a standard OpenPGP signature.
+
+    my $pt = Crypt::OpenPGP::Plaintext->new( Data => 'foo bar' );
+    my $hash = $sig->hash_data($pt)
+        or die $sig->errstr;
+
+=back
+
 =head2 $sig->key_id
 
 Returns the ID of the key that created the signature.
+
+=head2 $sig->timestamp
+
+Returns the time that the signature was created in Unix epoch time (seconds
+since 1970).
 
 =head1 AUTHOR & COPYRIGHTS
 

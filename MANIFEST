@@ -28,6 +28,7 @@ lib/Crypt/OpenPGP/Key/Secret/ElGamal.pm
 lib/Crypt/OpenPGP/Key/Secret/RSA.pm
 lib/Crypt/OpenPGP/KeyBlock.pm
 lib/Crypt/OpenPGP/KeyRing.pm
+lib/Crypt/OpenPGP/KeyServer.pm
 lib/Crypt/OpenPGP/MDC.pm
 lib/Crypt/OpenPGP/Marker.pm
 lib/Crypt/OpenPGP/Message.pm

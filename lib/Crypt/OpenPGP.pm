@@ -1,10 +1,10 @@
-# $Id: OpenPGP.pm,v 1.83 2002/02/27 06:08:09 btrott Exp $
+# $Id: OpenPGP.pm,v 1.86 2002/07/13 01:08:39 btrott Exp $
 
 package Crypt::OpenPGP;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '1.00';
+$VERSION = '1.01';
 
 use Crypt::OpenPGP::Constants qw( DEFAULT_CIPHER );
 use Crypt::OpenPGP::KeyRing;
@@ -17,6 +17,12 @@ use Crypt::OpenPGP::ErrorHandler;
 use base qw( Crypt::OpenPGP::ErrorHandler );
 
 use vars qw( %COMPAT );
+
+## pgp2 and pgp5 do not trim trailing whitespace from "canonical text"
+## signatures, only from cleartext signatures.
+## See:
+##   http://cert.uni-stuttgart.de/archive/ietf-openpgp/2000/01/msg00033.html
+$Crypt::OpenPGP::Globals::Trim_trailing_ws = 1;
 
 {
     my $env = sub {
@@ -126,6 +132,90 @@ sub init {
     $pgp;
 }
 
+sub handle {
+    my $pgp = shift;
+    my %param = @_;
+    my($data);
+    unless ($data = $param{Data}) {
+        my $file = $param{Filename} or
+            return $pgp->error("Need either 'Data' or 'Filename' to decrypt");
+        $data = $pgp->_read_files($file) or return $pgp->error($pgp->errstr);
+    }
+    my $msg = Crypt::OpenPGP::Message->new( Data => $data ) or
+        return $pgp->error("Reading data packets failed: " .
+            Crypt::OpenPGP::Message->errstr);
+    my @pieces = $msg->pieces;
+    return $pgp->error("No packets found in message") unless @pieces;
+    while (ref($pieces[0]) eq 'Crypt::OpenPGP::Marker') {
+        shift @pieces;
+    }
+    if (ref($pieces[0]) eq 'Crypt::OpenPGP::Compressed') {
+        $data = $pieces[0]->decompress or
+            return $pgp->error("Decompression error: " . $pieces[0]->errstr);
+        $msg = Crypt::OpenPGP::Message->new( Data => $data ) or
+            return $pgp->error("Reading decompressed data failed: " .
+                Crypt::OpenPGP::Message->errstr);
+        @pieces = $msg->pieces;
+    }
+    my $class = ref($pieces[0]);
+    my(%res);
+    if ($class eq 'Crypt::OpenPGP::OnePassSig' ||
+        $class eq 'Crypt::OpenPGP::Signature') {
+        my($valid, $sig) = $pgp->verify( Signature => $data );
+        return $pgp->error("Error verifying signature: " . $pgp->errstr)
+            if !defined $valid;
+        $res{Validity} = $valid;
+        $res{Signature} = $sig;
+    } else {
+        my $cb = $param{PassphraseCallback} || \&_default_passphrase_cb;
+        my($pt, $valid, $sig) = $pgp->decrypt(
+                      Data => $data,
+                      PassphraseCallback => $cb,
+                 );
+        return $pgp->error("Decryption failed: " . $pgp->errstr)
+            unless defined $pt;
+        return $pgp->error("Error verifying signature: " . $pgp->errstr)
+            if !defined($valid) && $pgp->errstr !~ /^No Signature/;
+        $res{Plaintext} = $pt;
+        $res{Validity} = $valid if defined $valid;
+        $res{Signature} = $sig if defined $sig;
+    }
+    \%res;
+}
+
+sub _default_passphrase_cb {
+    my($cert) = @_;
+    my $prompt;
+    if ($cert) {
+        $prompt = sprintf qq(
+You need a passphrase to unlock the secret key for
+user "%s".
+%d-bit %s key, ID %s
+
+Enter passphrase: ), $cert->uid,
+                     $cert->key->size,
+                     $cert->key->alg,
+                     substr($cert->key_id_hex, -8, 8);
+    } else {
+        $prompt = "Enter passphrase: ";
+    }
+    _prompt($prompt, '', 1);
+}
+
+sub _prompt {
+    my($prompt, $def, $noecho) = @_;
+    require Term::ReadKey;
+    Term::ReadKey->import;
+    print STDERR $prompt . ($def ? "[$def] " : "");
+    if ($noecho) {
+        ReadMode('noecho');
+    }
+    chomp(my $ans = ReadLine(0));
+    ReadMode('restore');
+    print STDERR "\n";
+    $ans ? $ans : $def;
+}
+
 sub sign {
     my $pgp = shift;
     my %param = @_;
@@ -157,9 +247,17 @@ sub sign {
         $cert->unlock($pass) or
             return $pgp->error("Secret key unlock failed: " . $cert->errstr);
     }
-    my @ptarg = ( Data => $data );
+    my @ptarg;
     push @ptarg, ( Filename => $param{Filename} ) if $param{Filename};
-    push @ptarg, ( Mode => 't' ) if $param{Clearsign};
+    if ($param{Clearsign}) {
+        push @ptarg, ( Mode => 't' );
+        ## In clear-signed messages, the line ending before the signature
+        ## is not considered part of the signed text.
+        (my $tmp = $data) =~ s!\r?\n$!!;
+        push @ptarg, ( Data => $tmp );
+    } else {
+        push @ptarg, ( Data => $data );
+    }
     my $pt = Crypt::OpenPGP::Plaintext->new(@ptarg);
     my @sigarg;
     if (my $hash_alg = $param{Digest}) {
@@ -189,7 +287,7 @@ sub sign {
     if ($param{Clearsign}) {
         require Crypt::OpenPGP::Util;
         my $hash = Crypt::OpenPGP::Digest->alg($sig->{hash_alg});
-        my $data = Crypt::OpenPGP::Util::dash_escape($pt->data);
+        my $data = Crypt::OpenPGP::Util::dash_escape($data);
         $data .= "\n" unless $data =~ /\n$/;
         $sig_data = "-----BEGIN PGP SIGNED MESSAGE-----\n" .
                     ($hash eq 'MD5' ? '' : "Hash: $hash\n") .
@@ -203,6 +301,7 @@ sub sign {
 sub verify {
     my $pgp = shift;
     my %param = @_;
+    my $wants_object = wantarray;
     my($data, $sig);
     require Crypt::OpenPGP::Signature;
     $param{Signature} or $param{SigFile} or
@@ -253,10 +352,26 @@ sub verify {
                 unpack('H*', $key_id));
         $cert = $kb->signing_key;
     }
-    my $dgst = $sig->hash_data($data) or
-        return $pgp->error( $sig->errstr );
-    $cert->key->public_key->verify($sig, $dgst) ?
-        ($kb && $kb->primary_uid ? $kb->primary_uid : 1) : 0;
+
+## pgp2 and pgp5 do not trim trailing whitespace from "canonical text"
+## signatures, only from cleartext signatures. So we first try to verify
+## the signature using proper RFC2440 canonical text, then if that fails,
+## retry without trimming trailing whitespace.
+## See:
+##   http://cert.uni-stuttgart.de/archive/ietf-openpgp/2000/01/msg00033.html
+    my($dgst, $found);
+    for (1, 0) {
+        local $Crypt::OpenPGP::Globals::Trim_trailing_ws = $_;
+        $dgst = $sig->hash_data($data) or
+            return $pgp->error( $sig->errstr );
+        $found++, last if substr($dgst, 0, 2) eq $sig->{chk};
+    }
+    return $pgp->error("Message hash does not match signature checkbytes")
+        unless $found;
+    my $valid = $cert->key->public_key->verify($sig, $dgst) ?
+      ($kb && $kb->primary_uid ? $kb->primary_uid : 1) : 0;
+
+    $wants_object ? ($valid, $sig) : $valid;
 }
 
 sub encrypt {
@@ -474,10 +589,6 @@ sub decrypt {
 
     $data = $enc->decrypt($key, $alg) or
         return $pgp->error("Ciphertext decrypt failed: " . $enc->errstr);
-    my $buf = Crypt::OpenPGP::Buffer->new;
-    $buf->append($data);
-    my $pt = Crypt::OpenPGP::PacketFactory->parse($buf);
-    my $valid;
 
     ## This is a special hack: if decrypt gets a signed, encrypted message,
     ## it needs to be able to pass back the decrypted text *and* a flag
@@ -485,30 +596,41 @@ sub decrypt {
     ## you don't know ahead of time if there is a signature at all--and if
     ## there isn't, there is no way of knowing whether the signature is valid,
     ## or if there isn't a signature at all. So this prepopulates the internal
-    ## errstr with the string "No Signature"--if there is a signature, and
+    ## errstr with the string "No Signature\n"--if there is a signature, and
     ## there is an error during verification, the second return value will be
     ## undef, and the errstr will contain the error that occurred. If there is
     ## *not* a signature, the second return value will still be undef, but
-    ## the errstr is guaranteed to be "No Signature".
+    ## the errstr is guaranteed to be "No Signature\n".
     $pgp->error("No Signature");
 
-    if (ref($pt) eq 'Crypt::OpenPGP::Compressed') {
-        $data = $pt->decompress or
-            return $pgp->error("Decompression error: " . $pt->errstr);
-        my $msg = Crypt::OpenPGP::Message->new( Data => $data,
-                                                IsPacketStream => 1 );
-        my @pieces = $msg->pieces;
-        if (ref($pieces[0]) eq 'Crypt::OpenPGP::OnePassSig' ||
-            ref($pieces[0]) eq 'Crypt::OpenPGP::Signature') {
-            $pt = $pieces[1];
-            if ($wants_verify) {
-                $valid = $pgp->verify( Signature => $data, IsPacketStream => 1 );
-            }
-        } else {
-            $pt = $pieces[0];
-        }
+    my($valid, $sig);
+    $msg = Crypt::OpenPGP::Message->new( Data => $data,
+                                         IsPacketStream => 1 );
+    @pieces = $msg->pieces;
+
+    ## If the first packet in the decrypted data is compressed,
+    ## decompress it and set the list of packets to the result.
+    if (ref($pieces[0]) eq 'Crypt::OpenPGP::Compressed') {
+        $data = $pieces[0]->decompress or
+            return $pgp->error("Decompression error: " . $pieces[0]->errstr);
+        $msg = Crypt::OpenPGP::Message->new( Data => $data,
+                                             IsPacketStream => 1 );
+        @pieces = $msg->pieces;
     }
-    $wants_verify ? ($pt->data, $valid) : $pt->data;
+
+    my($pt);
+    if (ref($pieces[0]) eq 'Crypt::OpenPGP::OnePassSig' ||
+        ref($pieces[0]) eq 'Crypt::OpenPGP::Signature') {
+        $pt = $pieces[1];
+        if ($wants_verify) {
+            ($valid, $sig) =
+                $pgp->verify( Signature => $data, IsPacketStream => 1 );
+        }
+    } else {
+        $pt = $pieces[0];
+    }
+
+    $wants_verify ? ($pt->data, $valid, $sig) : $pt->data;
 }
 
 sub keygen {
@@ -607,6 +729,8 @@ Crypt::OpenPGP - Pure-Perl OpenPGP implementation
 =head1 SYNOPSIS
 
     my $pgp = Crypt::OpenPGP->new;
+    my $result = $pgp->handle( Data => $message_body );
+
     my $signature = $pgp->sign(
                    Filename   => $file,
                    KeyID      => $key_id,
@@ -778,6 +902,95 @@ config file format.
 
 =back
 
+=head2 $pgp->handle( %args )
+
+A do-what-I-mean wrapper around I<decrypt> and I<verify>. Given either a
+filename or a block of data--for example, data from an incoming email
+message--I<handle> "handles" it as appropriate for whatever encryption or
+signing the message contains. For example, if the data is encrypted, I<handle>
+will return the decrypted data (after prompting you for the passphrase). If
+the data is signed, I<handle> will check the validity of the signature and
+return indication of the validity of the signature.
+
+The return value is a reference to a hash, which may contain the following
+keys, depending on the data passed to the method:
+
+=over 4
+
+=item * Plaintext
+
+If the data is encrypted, the decrypted message.
+
+=item * Validity
+
+If the data is signed, a true value if the signature is valid, a false value
+otherwise. The true value will be either the signer's email address, if
+available, or C<1>, if not.
+
+=item * Signature
+
+If the data is signed, the I<Crypt::OpenPGP::Signature> object representing
+the signature.
+
+=back
+
+If an error occurs, the return value will be C<undef>, and the error message
+can be obtained by calling I<errstr> on the I<Crypt::OpenPGP> object.
+
+I<%args> can contain:
+
+=over 4
+
+=item * Data
+
+The data to be "handled". This should be a simple scalar containing an
+arbitrary amount of data.
+
+I<Data> is optional; if unspecified, you should specify a filename (see
+I<Filename>, below).
+
+=item * Filename
+
+The path to a file to "handle".
+
+I<Filename> is optional; if unspecified, you should specify the data
+in I<Data>, above. If both I<Data> and I<Filename> are specified, the
+data in I<Data> overrides that in I<Filename>.
+
+=item * PassphraseCallback
+
+If the data is encrypted, you will need to supply I<handle> with the proper
+passphrase to unlock the private key, or the password to decrypt the
+symmetrically-encrypted data (depending on the method of encryption used).
+If you do not specify this parameter, this default passphrase callback will be
+used:
+
+    sub _default_passphrase_cb {
+        my($cert) = @_;
+        my $prompt;
+        if ($cert) {
+            $prompt = sprintf qq(
+    You need a passphrase to unlock the secret key for
+    user "%s".
+    %d-bit %s key, ID %s
+    
+    Enter passphrase: ), $cert->uid,
+                         $cert->key->size,
+                         $cert->key->alg,
+                         substr($cert->key_id_hex, -8, 8);
+        } else {
+            $prompt = "Enter passphrase: ";
+        }
+        _prompt($prompt, '', 1);
+    }
+
+If you do specify this parameter, make sure that your callback function can
+handle both asymmetric and symmetric encryption.
+
+See the I<PassphraseCallback> parameter for I<decrypt>, below.
+
+=back
+
 =head2 $pgp->encrypt( %args )
 
 Encrypts a block of data. The encryption is actually done with a symmetric
@@ -899,12 +1112,14 @@ encrypting the message:
 =item * Cipher
 
 The name of a symmetric cipher with which the plaintext will be
-encrypted. Valid arguments are C<DES3>, C<Blowfish>, C<IDEA>,
+encrypted. Valid arguments are C<DES3>, C<CAST5>, C<Blowfish>, C<IDEA>,
 C<Twofish>, C<Rijndael>, C<Rijndael192>, and C<Rijndael256> (the last
 two are C<Rijndael> with key sizes of 192 and 256 bits, respectively).
 
-This argument is optional; I<Crypt::OpenPGP> currently defaults to
-C<DES3>, but this could change in the future.
+This argument is optional; if you have provided a I<Compat> parameter,
+I<Crypt::OpenPGP> will use the appropriate cipher for the supplied
+compatibility mode. Otherwise, I<Crypt::OpenPGP> currently defaults to
+C<DES3>; this could change in the future.
 
 =item * Compress
 
@@ -974,7 +1189,7 @@ of their encryption should serves as the input to this method.
 
 When called in scalar context, returns the plaintext (that is, the
 decrypted ciphertext), or C<undef> on failure. When called in list
-context, returns a two-element list containing the plaintext and the
+context, returns a three-element list containing the plaintext and the
 result of signature verification (see next paragraph), or the empty
 list on failure. Either of the failure conditions listed here indicates
 that decryption failed.
@@ -982,10 +1197,12 @@ that decryption failed.
 If I<decrypt> is called in list context, and the encrypted text
 contains a signature over the plaintext, I<decrypt> will attempt to
 verify the signature and will return the result of that verification
-as the second element in the return list. If you call I<decrypt> in
+as the second element in the return list, and the actual
+I<Crypt::OpenPGP::Signature> object as the third element in the return
+list. If you call I<decrypt> in
 list context and the ciphertext does I<not> contain a signature, that
 second element will be C<undef>, and the I<errstr> will be set to
-the string C<No Signature>. The second element in the return list can
+the string C<No Signature\n>. The second element in the return list can
 have one of three possible values: C<undef>, meaning that either an
 error occurred in verifying the signature, I<or> the ciphertext did
 not contain a signature; C<0>, meaning that the signature is invalid;
@@ -996,10 +1213,11 @@ I<verify> (below).
 For example, to decrypt a message that may contain a signature that you
 want verified, you might use code like this:
 
-    my($pt, $validity) = $pgp->decrypt( ... );
+    my($pt, $valid, $sig) = $pgp->decrypt( ... );
     die "Decryption failed: ", $pgp->errstr unless $pt;
     die "Signature verification failed: ", $pgp->errstr
-        unless defined $validity || $pgp->errstr ne 'No Signature';
+        unless defined $valid || $pgp->errstr !~ /^No Signature/;
+    print "Signature created at ", $sig->timestamp, "\n";
 
 This checks for errors in decryption, as well as errors in signature
 verification, excluding the error denoting that the plaintext was
@@ -1174,7 +1392,9 @@ The digest algorithm to use when creating the signature; the data to be
 signed is hashed by a message digest algorithm, then signed. Possible
 values are C<MD5>, C<SHA1>, and C<RIPEMD160>.
 
-This argument is optional; by default I<SHA1> will be used.
+This argument is optional; if not provided, the digest algorithm will be
+set based on the I<Compat> setting provided to I<sign> or I<new>. If you
+have not provided a I<Compat> setting, I<SHA1> will be used.
 
 =item * Version
 
@@ -1194,6 +1414,10 @@ case you should call I<errstr> to determine the source of the error).
 The 'true' value returned for a successful signature will be, if available,
 the PGP User ID of the person who created the signature. If that
 value is unavailable, the return value will be C<1>.
+
+If called in list context, the second element returned in the return list
+will be the I<Crypt::OpenPGP::Signature> object representing the actual
+signature.
 
 I<%args> can contain:
 

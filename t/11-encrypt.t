@@ -1,11 +1,11 @@
-# $Id: 11-encrypt.t,v 1.11 2001/08/29 21:31:01 btrott Exp $
+# $Id: 11-encrypt.t,v 1.12 2002/07/12 23:59:18 btrott Exp $
 
 use Test;
 use Crypt::OpenPGP;
 use Crypt::OpenPGP::Message;
 use strict;
 
-BEGIN { plan tests => 39 }
+BEGIN { plan tests => 45 }
 
 use vars qw( $SAMPLES );
 unshift @INC, 't/';
@@ -21,6 +21,7 @@ TEXT
 
 my $key_id = '2988D2905AF8F320';
 my $key_id2 = '576B010D0F7199D3';
+my $key_id_sign = '39F560A90D7F1559';
 my $pass = "foobar";
 my $uid = 'foo@bar';
 
@@ -161,3 +162,20 @@ ok($ct);
 $pt = $pgp->decrypt( Data => $ct, Key => $cert );
 ok($pt);
 ok($pt eq $text);
+
+## Test encrypting and signing at the same time, with a test of
+## the 3-element return list from decrypt.
+$ct = $pgp->encrypt(
+               KeyID     => $key_id,
+               Data      => $text,
+               SignKeyID => $key_id_sign,
+               SignPassphrase => $pass,
+            );
+ok($ct);
+my($valid, $sig);
+($pt, $valid, $sig) = $pgp->decrypt( Data => $ct, Passphrase => $pass );
+ok($pt);
+ok($pt eq $text);
+ok($valid);
+ok($valid =~ $uid);
+ok($sig->key_id eq pack 'H*', $key_id_sign);
