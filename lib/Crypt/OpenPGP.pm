@@ -1,10 +1,10 @@
-# $Id: OpenPGP.pm,v 1.73 2001/09/16 04:48:20 btrott Exp $
+# $Id: OpenPGP.pm,v 1.78 2002/01/29 02:32:54 btrott Exp $
 
 package Crypt::OpenPGP;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.17';
+$VERSION = '0.18';
 
 use Crypt::OpenPGP::Constants qw( DEFAULT_CIPHER );
 use Crypt::OpenPGP::KeyRing;
@@ -209,6 +209,7 @@ sub verify {
             return $pgp->error("Need Signature or SigFile to verify");
     my %arg = $param{Signature} ? (Data => $param{Signature}) :
                                   (Filename => $param{SigFile});
+    $arg{IsPacketStream} = 1 if $param{IsPacketStream};
     my $msg = Crypt::OpenPGP::Message->new( %arg ) or
         return $pgp->error("Reading signature failed: " .
             Crypt::OpenPGP::Message->errstr);
@@ -279,7 +280,8 @@ sub encrypt {
                          Compat     => $param{Compat},
                          Passphrase => $param{SignPassphrase},
                          PassphraseCallback => $param{SignPassphraseCallback},
-                  );
+                  )
+            or return;
     } else {
         my $pt = Crypt::OpenPGP::Plaintext->new( Data => $data,
                       $param{Filename} ? (Filename => $param{Filename}) : () );
@@ -311,7 +313,9 @@ sub encrypt {
         if (my $recips = $param{Recipients}) {
             my @recips = ref $recips eq 'ARRAY' ? @$recips : $recips;
             my $ring = Crypt::OpenPGP::KeyRing->new( Filename =>
-                $pgp->{cfg}->get('PubRing') );
+                $pgp->{cfg}->get('PubRing') ) or
+                return $pgp->error("Opening keyring failed: " .
+                    Crypt::OpenPGP::KeyRing->errstr);
             my %seen;
             for my $r (@recips) {
                 my($lr, @kb) = (length($r));
@@ -438,23 +442,53 @@ sub decrypt {
             return $pgp->error("Symkey decrypt failed: " . $sym_key->errstr);
     }
     my $enc = $pieces[0];
+
+    ## If there is still no symkey and symmetric algorithm, *and* the
+    ## first packet is a Crypt::OpenPGP::Ciphertext packet, assume that
+    ## the packet is encrypted using a symmetric key, using a 'Simple' s2k.
+    if (!$key && !$alg && ref($enc) eq 'Crypt::OpenPGP::Ciphertext') {
+        my $pass = $param{Passphrase} or
+            return $pgp->error("Need passphrase to decrypt session key");
+        require Crypt::OpenPGP::Cipher;
+        require Crypt::OpenPGP::S2k;
+        my $ciph = Crypt::OpenPGP::Cipher->new('IDEA');
+        my $s2k = Crypt::OpenPGP::S2k->new('Simple');
+        $s2k->{hash} = Crypt::OpenPGP::Digest->new('MD5');
+        $key = $s2k->generate($pass, $ciph->keysize);
+        $alg = $ciph->alg_id;
+    }
+
     $data = $enc->decrypt($key, $alg) or
         return $pgp->error("Ciphertext decrypt failed: " . $enc->errstr);
     my $buf = Crypt::OpenPGP::Buffer->new;
     $buf->append($data);
     my $pt = Crypt::OpenPGP::PacketFactory->parse($buf);
     my $valid;
+
+    ## This is a special hack: if decrypt gets a signed, encrypted message,
+    ## it needs to be able to pass back the decrypted text *and* a flag
+    ## saying whether the signature is valid or not. But in some cases,
+    ## you don't know ahead of time if there is a signature at all--and if
+    ## there isn't, there is no way of knowing whether the signature is valid,
+    ## or if there isn't a signature at all. So this prepopulates the internal
+    ## errstr with the string "No Signature"--if there is a signature, and
+    ## there is an error during verification, the second return value will be
+    ## undef, and the errstr will contain the error that occurred. If there is
+    ## *not* a signature, the second return value will still be undef, but
+    ## the errstr is guaranteed to be "No Signature".
     $pgp->error("No Signature");
+
     if (ref($pt) eq 'Crypt::OpenPGP::Compressed') {
         $data = $pt->decompress or
             return $pgp->error("Decompression error: " . $pt->errstr);
-        my $msg = Crypt::OpenPGP::Message->new( Data => $data );
+        my $msg = Crypt::OpenPGP::Message->new( Data => $data,
+                                                IsPacketStream => 1 );
         my @pieces = $msg->pieces;
         if (ref($pieces[0]) eq 'Crypt::OpenPGP::OnePassSig' ||
             ref($pieces[0]) eq 'Crypt::OpenPGP::Signature') {
             $pt = $pieces[1];
             if ($wants_verify) {
-                $valid = $pgp->verify( Signature => $data );
+                $valid = $pgp->verify( Signature => $data, IsPacketStream => 1 );
             }
         } else {
             $pt = $pieces[0];
@@ -522,6 +556,7 @@ sub _read_files {
         $file ||= '';
         local *FH;
         open FH, $file or return $pgp->error("Error opening $file: $!");
+        binmode FH;
         { local $/; $data .= <FH> }
         close FH or warn "Warning: Got error closing $file: $!";
     }
@@ -697,7 +732,7 @@ for this compatibility mode (eg. F<~/.gnupg/options> for GnuPG), it will
 be automatically read in, and I<Crypt::OpenPGP> will set any options
 relevant to its execution (symmetric cipher algorithm, etc.); I<PubRing>
 and I<SecRing> (below) are set according to the default values for this
-compatibility mode (eg. F<~/.gnupg/pubring.gpg for the GnuPG public
+compatibility mode (eg. F<~/.gnupg/pubring.gpg> for the GnuPG public
 keyring).
 
 =item * SecRing

@@ -1,4 +1,4 @@
-# $Id: KeyRing.pm,v 1.18 2001/08/10 21:19:05 btrott Exp $
+# $Id: KeyRing.pm,v 1.19 2002/01/29 01:19:46 btrott Exp $
 
 package Crypt::OpenPGP::KeyRing;
 use strict;
@@ -28,6 +28,7 @@ sub init {
         local *FH;
         open FH, $file or
             return (ref $ring)->error("Can't open keyring $file: $!");
+        binmode FH;
         { local $/; $ring->{_data} = <FH> }
         close FH;
     }
@@ -39,6 +40,16 @@ sub init {
         $ring->{_data} = $rec->{Data};
     }
     $ring;
+}
+
+sub save {
+    my $ring = shift;
+    my @blocks = $ring->blocks;
+    my $res = '';
+    for my $block (@blocks) {
+        $res .= $block->save;
+    }
+    $res;
 }
 
 sub read {

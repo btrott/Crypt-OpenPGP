@@ -1,4 +1,4 @@
-# $Id: Message.pm,v 1.9 2001/08/11 06:29:33 btrott Exp $
+# $Id: Message.pm,v 1.10 2002/01/29 01:19:33 btrott Exp $
 
 package Crypt::OpenPGP::Message;
 use strict;
@@ -17,12 +17,14 @@ sub new {
 sub init {
     my $msg = shift;
     my %param = @_;
+    $msg->{is_packet_stream} = delete $param{IsPacketStream};
     $msg->{pieces} = [];
     $msg->{_data} = $param{Data} || '';
     if (!$msg->{_data} && (my $file = $param{Filename})) {
         local *FH;
         open FH, $file or
             return (ref $msg)->error("Can't open message $file: $!");
+        binmode FH;
         { local $/; $msg->{_data} = <FH> }
         close FH;
     }
@@ -35,7 +37,8 @@ sub read {
     my $data = $msg->{_data} or
         return $msg->error("Message contains no data");
     my $pt;
-    if ($data =~ /-----BEGIN PGP SIGNED MESSAGE/) {
+    if (!$msg->{is_packet_stream} &&
+        $data =~ /-----BEGIN PGP SIGNED MESSAGE/) {
         require Crypt::OpenPGP::Armour;
         require Crypt::OpenPGP::Util;
         require Crypt::OpenPGP::Plaintext;
@@ -48,7 +51,7 @@ sub read {
         $data = $sig;
     }
 
-    if ($data =~ /^-----BEGIN PGP/m) {
+    if (!$msg->{is_packet_stream} && $data =~ /^-----BEGIN PGP/m) {
         require Crypt::OpenPGP::Armour;
         my $rec = Crypt::OpenPGP::Armour->unarmour($data) or
             return $msg->error("Unarmour failed: " .
@@ -121,6 +124,18 @@ The path to a file that contains a serialized stream of packets.
 
 This argument is optional, but either this argument or I<Data> must be
 provided.
+
+=item * IsPacketStream
+
+By default I<Crypt::OpenPGP::Message> will attempt to unarmour ASCII-armoured
+text. Since the armoured text can actually appear anywhere in a string, as
+long as it starts at the beginning of a line, this can cause problems when a
+stream of packets happens to include armoured text. At those times you want
+the packets to be treated as a stream, not as a string that happens to contain
+armoured text.
+
+In this case, set I<IsPacketStream> to a true value, and the ASCII armour
+detection will be skipped.
 
 =back
 

@@ -1,10 +1,10 @@
-# $Id: 04-armour.t,v 1.2 2001/07/26 17:53:04 btrott Exp $
+# $Id: 04-armour.t,v 1.4 2002/01/29 02:33:05 btrott Exp $
 
 use Test;
 use Crypt::OpenPGP::Armour;
 use Crypt::OpenPGP;
 
-BEGIN { plan tests => 16 }
+BEGIN { plan tests => 19 }
 
 my $data = "foo bar bar";
 my $obj = "FOO OBJECT";
@@ -56,3 +56,15 @@ ok(keys %{ $ref->{Headers} }, 3);
 ok($headers{foo}, $ref->{Headers}->{foo});
 ok($headers{baz}, $ref->{Headers}->{baz});
 ok($ref->{Headers}->{Version}, Crypt::OpenPGP->version_string);
+
+## Test that we get rid of \r (\cM) characters from armoured text
+$armoured = Crypt::OpenPGP::Armour->armour(
+                       Data => $data,
+                       Object => $obj,
+                       Headers => \%headers
+                );
+ok($armoured);
+$armoured = join "\r\n", split /\n/, $armoured;
+$ref = Crypt::OpenPGP::Armour->unarmour($armoured);
+ok($ref);
+ok($data eq $ref->{Data});

@@ -1,6 +1,26 @@
-$Id: Changes,v 1.60 2001/09/16 04:48:53 btrott Exp $
+$Id: Changes,v 1.63 2002/01/29 18:11:22 btrott Exp $
 
 Revision history for Crypt::OpenPGP
+
+0.18  2002.01.29
+    - Added IsPacketStream parameter to Crypt::OpenPGP::Message; this turns
+      off armour detection when initializing the message, and can be used
+      when you *know* that the message is a stream of packets, and not an
+      ASCII-armoured stream of packets.
+    - When unarmouring, remove \r characters from the armoured text end
+      of lines.
+    - Added Crypt::OpenPGP::KeyRing::save method. Thanks to Ben Xain for
+      the idea and a patch.
+    - Added compatibility with symmetric-key-encrypted files that do not
+      have a symmetric-key session key packet. The assumption with these
+      encrypted messages is that they are PGP2-encrypted, using the IDEA
+      cipher, MD5 digests, and a Simple s2k. So that is how the fix has
+      been implemented. Thanks to Ben Xain for the bug report.
+    - Win32 fixes: use binmode when reading files that might be binary.
+    - Added --symmetric and --digest options to Makefile.PL to set
+      symmetric and digest algorithms when using --sdk.
+    - Fixed subkey IDs in list-keys with bin/pgplet.
+    - Check for errors when reading keyring.
 
 0.17  2001.09.15
     - Added Crypt::OpenPGP::Config to hold per-instance configuration
@@ -13,7 +33,7 @@ Revision history for Crypt::OpenPGP
     - Automatically read in appropriate config file if Compat flag
       given.
     - Added tests for encrypting/decrypting block of text to t/06-cipher.t.
-    - Added --sdk option to Makefile.Pl to bypass interactive prompts.
+    - Added --sdk option to Makefile.PL to bypass interactive prompts.
     - Removed Crypt::DES_EDE3 from this distribution, moved into its own
       distribution.
 

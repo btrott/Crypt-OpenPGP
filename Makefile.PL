@@ -1,12 +1,12 @@
-# $Id: Makefile.PL,v 1.11 2001/09/16 04:48:53 btrott Exp $
+# $Id: Makefile.PL,v 1.12 2001/10/04 20:50:43 btrott Exp $
 
 use ExtUtils::MakeMaker qw( prompt WriteMakefile );
 use strict;
 
-my $is_sdk = 0;
-for my $arg (@ARGV) {
-    $is_sdk = 1, last if $arg eq '--sdk';
-}
+use Getopt::Long;
+my($is_sdk, $cryptmod, $dgstmod, $pkmod);
+GetOptions("sdk", \$is_sdk, "symmetric=s", \$cryptmod,
+           "digest=s", \$dgstmod);
 
 my %BASE_PREREQS = (
         'Data::Buffer'   => '0.04',
@@ -40,9 +40,18 @@ my @pkmod = (
     [ 'RSA' => 'Crypt::RSA' ],
 );
 
+my %wanted;
+if ($cryptmod) {
+    $wanted{\@cryptmod} = { map { $_ => 1 } split /,/, $cryptmod };
+}
+if ($dgstmod) {
+    $wanted{\@dgstmod} = { map { $_ => 1 } split /,/, $dgstmod };
+}
+
 if ($is_sdk) {
     for my $list (\@cryptmod, \@dgstmod, \@pkmod) {
         for my $ref (@$list) {
+            next if exists $wanted{$list} && !exists $wanted{$list}{$ref->[0]};
             if ($ref->[1]) {
                 $prereq{$ref->[1]} = $ref->[2] ? $ref->[2] : 0;
             }

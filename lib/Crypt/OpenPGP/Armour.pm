@@ -1,4 +1,4 @@
-# $Id: Armour.pm,v 1.9 2001/07/29 17:37:03 btrott Exp $
+# $Id: Armour.pm,v 1.10 2002/01/29 01:19:55 btrott Exp $
 
 package Crypt::OpenPGP::Armour;
 use strict;
@@ -29,6 +29,8 @@ sub armour {
 sub unarmour {
     my $class = shift;
     my($blob) = @_;
+    ## Get rid of DOSish newlines.
+    $blob =~ s!\r!!g;
     my($begin, $obj, $head, $data, $end) = $blob =~
         m!(-----BEGIN ([^\n\-]+)-----)\n(.*?\n\n)?(.+)(-----END .*?-----)!s
         or return $class->error("Unrecognizable armour");
