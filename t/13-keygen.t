@@ -1,11 +1,11 @@
-# $Id: 13-keygen.t,v 1.3 2001/07/27 05:28:17 btrott Exp $
+# $Id: 13-keygen.t,v 1.5 2001/08/11 01:11:41 btrott Exp $
 
 use Test;
 use Crypt::OpenPGP;
 use Crypt::OpenPGP::Message;
 use strict;
 
-BEGIN { plan tests => 22 }
+BEGIN { plan tests => 28 }
 
 my $id = 'Black Francis <frank@black.com>';
 my $pass = 'foobar';
@@ -32,15 +32,17 @@ my $bits = 512;
         ok($sec->key);
         ok($pub->key->key_id, $sec->key->key_id);
         ok($pub->primary_uid, $id);
+        ok($pub->key->key->size, $bits);
+        ok($sec->key->key->size, $bits);
 
         my $sig = $pub->get('Crypt::OpenPGP::Signature')->[0];
         my $dgst = $sig->hash_data($pub->key);
         ok($pub->key->key->verify($sig, $dgst));
 
         my $saved = $pub->save;
-        my $msg = Crypt::OpenPGP::Message->new;
-        $msg->read( Data => $saved );
-        my @pieces = @{ $msg->{pieces} };
+        my $msg = Crypt::OpenPGP::Message->new( Data => $saved );
+        ok($msg);
+        my @pieces = $msg->pieces;
         ok(ref($pieces[0]), 'Crypt::OpenPGP::Certificate');
         ok(ref($pieces[1]), 'Crypt::OpenPGP::UserID');
         ok(ref($pieces[2]), 'Crypt::OpenPGP::Signature');

@@ -1,8 +1,9 @@
-# $Id: Key.pm,v 1.8 2001/08/06 07:31:47 btrott Exp $
+# $Id: Key.pm,v 1.9 2001/08/13 01:35:07 btrott Exp $
 
 package Crypt::OpenPGP::Key;
 use strict;
 
+use Carp qw( confess );
 use Crypt::OpenPGP::ErrorHandler;
 use base qw( Crypt::OpenPGP::ErrorHandler );
 
@@ -67,7 +68,8 @@ use vars qw( $AUTOLOAD );
 sub AUTOLOAD {
     my $key = shift;
     (my $meth = $AUTOLOAD) =~ s/.*:://;
-    die "Can't call method $meth on Key $key" unless $key->{__valid}{$meth};
+    confess "Can't call method $meth on Key $key"
+        unless $key->{__valid}{$meth};
     $key->{key_data}->$meth(@_);
 }
 

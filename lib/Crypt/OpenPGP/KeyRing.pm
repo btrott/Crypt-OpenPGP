@@ -1,4 +1,4 @@
-# $Id: KeyRing.pm,v 1.17 2001/08/06 21:20:47 btrott Exp $
+# $Id: KeyRing.pm,v 1.18 2001/08/10 21:19:05 btrott Exp $
 
 package Crypt::OpenPGP::KeyRing;
 use strict;
@@ -92,6 +92,14 @@ sub find_keyblock_by_uid {
     my($uid) = @_;
     $ring->find_keyblock(sub { $_[0]->id =~ /$uid/ },
         [ PGP_PKT_USER_ID ], 1 );
+}
+
+sub find_keyblock_by_index {
+    my $ring = shift;
+    my($index) = @_;
+    ## XXX should not have to read entire keyring
+    $ring->read;
+    ($ring->blocks)[$index];
 }
 
 sub find_keyblock {
@@ -234,6 +242,12 @@ In scalar context, returns only the first keyblock with a matching
 user ID; in list context, returns all matching keyblocks.
 
 Returns false on failure.
+
+=head2 $ring->find_keyblock_by_index($index)
+
+Given an index into a list of keyblocks I<$index>, returns the keyblock
+(a I<Crypt::OpenPGP::KeyBlock> object) at that index. Accepts negative
+indexes, so C<-1> will give you the last keyblock in the keyring.
 
 =head1 AUTHOR & COPYRIGHTS
 

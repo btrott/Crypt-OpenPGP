@@ -1,11 +1,11 @@
-# $Id: Signature.pm,v 1.13 2001/07/29 17:13:03 btrott Exp $
+# $Id: Signature.pm,v 1.14 2001/08/13 01:18:19 btrott Exp $
 
 package Crypt::OpenPGP::Signature;
 use strict;
 
 use Crypt::OpenPGP::Digest;
 use Crypt::OpenPGP::Signature::SubPacket;
-use Crypt::OpenPGP::Key::Secret;
+use Crypt::OpenPGP::Key::Public;
 use Crypt::OpenPGP::Constants qw( DEFAULT_DIGEST );
 use Crypt::OpenPGP::ErrorHandler;
 use base qw( Crypt::OpenPGP::ErrorHandler );
@@ -139,7 +139,7 @@ sub parse {
     }
     $sig->{chk} = $buf->get_bytes(2);
     ## XXX should be Crypt::OpenPGP::Signature->new($sig->{pk_alg})?
-    my $key = Crypt::OpenPGP::Key::Secret->new($sig->{pk_alg});
+    my $key = Crypt::OpenPGP::Key::Public->new($sig->{pk_alg});
     my @sig = $key->sig_props;
     for my $e (@sig) {
         $sig->{$e} = $buf->get_mp_int;
@@ -171,7 +171,7 @@ sub save {
     }
     $buf->put_bytes($sig->{chk}, 2);
     ## XXX should be Crypt::OpenPGP::Signature->new($sig->{pk_alg})?
-    my $key = Crypt::OpenPGP::Key::Secret->new($sig->{pk_alg});
+    my $key = Crypt::OpenPGP::Key::Public->new($sig->{pk_alg});
     my @sig = $key->sig_props;
     for my $e (@sig) {
         $buf->put_mp_int($sig->{$e});

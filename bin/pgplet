@@ -1,0 +1,238 @@
+#!/usr/bin/perl -w
+# $Id: pgplet,v 1.5 2001/08/15 22:21:27 btrott Exp $
+
+use lib 'lib';
+
+use strict;
+use Term::ReadKey;
+use Getopt::Long;
+use Crypt::OpenPGP;
+use Crypt::OpenPGP::KeyRing;
+
+my %opts;
+Getopt::Long::Configure('no_ignore_case');
+GetOptions(\%opts, "sign|s", "encrypt|e", "detach-sign|b",
+                   "decrypt", "verify", "list-keys",
+                   "list-public-keys", "list-secret-keys",
+                   "fingerprint", "keyring=s", "secret-keyring=s",
+                   "recipient|r=s@", "armour|a", "clearsign",
+                   "enarmour", "dearmour");
+
+my $pgp = Crypt::OpenPGP->new( PubRing => $opts{keyring},
+                               SecRing => $opts{'secret-keyring'} );
+
+my @args = ($pgp, \%opts, \@ARGV);
+
+if ($opts{'list-keys'} || $opts{'list-public-keys'}) {
+    do_list_keys(@args);
+} elsif ($opts{'list-secret-keys'}) {
+    do_list_keys(@args, 1);
+} elsif ($opts{encrypt}) {
+    do_encrypt(@args);
+} elsif ($opts{decrypt}) {
+    do_decrypt(@args);
+} elsif ($opts{sign}) {
+    do_sign(@args);
+} elsif ($opts{'detach-sign'}) {
+    do_sign(@args, 1);
+} elsif ($opts{clearsign}) {
+    do_sign(@args, 0, 1);
+} elsif ($opts{verify}) {
+    do_verify(@args);
+} elsif ($opts{enarmour}) {
+    do_enarmour(@args);
+} elsif ($opts{dearmour}) {
+    do_dearmour(@args);
+}
+
+sub do_list_keys {
+    my($pgp, $opts, $args, $secret) = @_;
+    my $fp = $opts->{fingerprint};
+    my $ring_file = $pgp->{ $secret ? 'SecRing' : 'PubRing' };
+    my $ring = Crypt::OpenPGP::KeyRing->new( Filename => $ring_file );
+    $ring->read;
+    my @blocks = $ring->blocks;
+
+    print $ring_file, "\n", '-' x length($ring_file), "\n";
+    for my $kb (@blocks) {
+        my $cert = $kb->key;
+        printf "%s  %4d%s/%s %s\n",
+            ($cert->is_secret ? 'sec' : 'pub'),
+            $cert->key->size,
+            $cert->key->public_key->abbrev,
+            uc unpack('H*', substr $cert->key_id, -4, 4),
+            ($kb->primary_uid || '');
+        if ($fp) {
+            my $f = $cert->fingerprint;
+            my $form = join ' ', ("%02X%02X " x (length($f) / 4)) x 2;
+            printf "     Key fingerprint = $form\n", unpack 'C*', $f;
+        }
+        if (my $sub = $kb->subkey) {
+            printf "%s  %4d%s/%s\n",
+                ($sub->is_secret ? 'ssb' : 'sub'),
+                $sub->key->size,
+                $sub->key->public_key->abbrev,
+                uc unpack('H*', substr $sub->key_id, -4, 4),
+        }
+        print "\n";
+    }
+}
+
+sub do_encrypt {
+    my($pgp, $opts, $args) = @_;
+    my $recips = $opts->{recipient};
+    $recips && @$recips or die "usage: $0 --encrypt -r <recip> <file>";
+    my $file = shift @$args or die "usage: $0 --encrypt -r <recip> <file>";
+    my $cb = sub {
+        my($keys) = @_;
+        my $prompt = "
+Message is being encrypted to:
+";
+        my $i = 1;
+        for my $cert (@$keys) {
+            $prompt .= sprintf "    [%d] %s (ID %s)\n",
+                $i++, $cert->uid,
+                uc unpack('H*', substr $cert->key_id, -4, 4);
+        }
+        $prompt .= "
+If these are the intended recipients, press <enter>. Otherwise,
+enter the indices of the recipients to which you wish to send
+the message.
+
+Enter numeric indices, separated by spaces: ";
+        my $n = prompt($prompt, join(' ', 1..$i-1));
+        my %seen;
+        my @keys = @{$keys}[ map { $seen{$_}++ ? () : ($_-1) } split /\s+/, $n ];
+        \@keys;
+    };
+    my %sign_args;
+    if ($opts->{sign}) {
+        my $cert = find_default_seckey($pgp);
+        %sign_args = ( SignKeyID => $cert->key_id_hex,
+                       SignPassphraseCallback => \&passphrase_cb );
+    }
+    my $ct = $pgp->encrypt(
+               Recipients => $recips,
+               RecipientsCallback => $cb,
+               Compat     => 'GnuPG',
+               Filename   => $file,
+               Armour     => $opts->{armour},
+               %sign_args,
+            ) or die $pgp->errstr;
+    print $ct;
+}
+
+sub do_decrypt {
+    my($pgp, $opts, $args) = @_;
+    my $file = shift @$args or die "usage: $0 --decrypt <file>";
+    my($pt, $validity);
+    until ($pt) {
+        ($pt, $validity) = $pgp->decrypt(
+                   Filename   => $file,
+                   PassphraseCallback => \&passphrase_cb,
+                );
+        unless ($pt) {
+            if ($pgp->errstr =~ /Bad checksum/) {
+                print "Error: Bad passphrase.\n\n";
+            } else {
+                die $pgp->errstr;
+            }
+        }
+    }
+    print $pt;
+    warn "Signature verification failed: ", $pgp->errstr
+        unless defined $validity || $pgp->errstr ne 'No Signature';
+    if (defined $validity) {
+        print STDERR $validity ? qq(Good signature from "$validity".\n) :
+            "Bad signature.\n";
+    }
+}
+
+sub do_sign {
+    my($pgp, $opts, $args, $detach, $clear) = @_;
+    my $file = shift @$args or die "usage: $0 --sign <file>";
+    my $sig;
+    my $cert = find_default_seckey($pgp);
+    until ($sig) {
+        $sig = $pgp->sign(
+                 Compat     => 'GnuPG',
+                 Filename   => $file,
+                 Detach     => $detach,
+                 Clearsign  => $clear,
+                 Key        => $cert,
+                 PassphraseCallback => \&passphrase_cb,
+                 Armour     => $opts->{armour},
+        );
+        unless ($sig) {
+            if ($pgp->errstr =~ /Bad checksum/) {
+                print "Error: Bad passphrase.\n\n";
+            } else {
+                die $pgp->errstr;
+            }
+        }
+    }
+    print $sig;
+}
+
+sub do_verify {
+    my($pgp, $opts, $args) = @_;
+    my($sigfile, @files) = @$args;
+    my $valid = $pgp->verify( SigFile => $sigfile, Files => \@files );
+    return unless $valid;
+    print $valid ? qq(Good signature from "$valid".\n) : "Bad signature.\n";
+}
+
+sub do_enarmour {
+    my($pgp, $opts, $args) = @_;
+    my $file = shift @$args or return $pgp->error("No file");
+    require Crypt::OpenPGP::Armour;
+    print Crypt::OpenPGP::Armour->armour(
+                  Data   => $pgp->_read_files($file),
+                  Object => 'MESSAGE',
+           );
+}
+
+sub do_dearmour {
+    my($pgp, $opts, $args) = @_;
+    my $file = shift @$args or return $pgp->error("No file");
+    require Crypt::OpenPGP::Armour;
+    my $data = Crypt::OpenPGP::Armour->unarmour($pgp->_read_files($file));
+    print $data->{Data};
+}
+
+sub passphrase_cb {
+    my($cert) = @_;
+    my $prompt = sprintf qq(
+You need a passphrase to unlock the secret key for
+user "%s".
+%d-bit %s key, ID %s
+
+Enter passphrase: ), $cert->uid,
+                     $cert->key->size,
+                     $cert->key->alg,
+                     uc unpack('H*', substr $cert->key_id, -4, 4);
+    prompt($prompt, '', 1);
+}
+
+sub find_default_seckey {
+    my($pgp) = @_;
+    my $ring = Crypt::OpenPGP::KeyRing->new( Filename => $pgp->{SecRing} ) or
+        return $pgp->error(Crypt::OpenPGP::KeyRing->errstr);
+    my $kb = $ring->find_keyblock_by_index(-1) or
+        return $pgp->error("Can't find last keyblock: " . $ring->errstr);
+    my $cert = $kb->signing_key;
+    $cert->uid($kb->primary_uid);
+    $cert;
+}
+
+sub prompt {
+    my($prompt, $def, $noecho) = @_;
+    print STDERR $prompt . ($def ? "[$def] " : "");
+    if ($noecho) {
+        ReadMode('noecho');
+    }
+    chomp(my $ans = ReadLine(0));
+    ReadMode('restore');
+    print STDERR "\n";
+    $ans ? $ans : $def;
+}

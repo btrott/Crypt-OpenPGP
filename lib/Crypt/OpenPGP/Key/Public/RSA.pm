@@ -1,4 +1,4 @@
-# $Id: RSA.pm,v 1.8 2001/08/06 07:30:47 btrott Exp $
+# $Id: RSA.pm,v 1.10 2001/08/13 01:18:20 btrott Exp $
 
 package Crypt::OpenPGP::Key::Public::RSA;
 use strict;
@@ -12,9 +12,11 @@ use base qw( Crypt::OpenPGP::Key::Public Crypt::OpenPGP::ErrorHandler );
 
 sub can_encrypt { 1 }
 sub can_sign { 1 }
+sub abbrev { 'R' }
 
 sub public_props { qw( n e ) }
 sub crypt_props { qw( c ) }
+sub sig_props { qw( c ) }
 
 sub init {
     my $key = shift;

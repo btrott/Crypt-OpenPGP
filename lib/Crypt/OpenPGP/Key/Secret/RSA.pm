@@ -1,4 +1,4 @@
-# $Id: RSA.pm,v 1.9 2001/08/06 07:30:48 btrott Exp $
+# $Id: RSA.pm,v 1.10 2001/08/13 01:18:21 btrott Exp $
 
 package Crypt::OpenPGP::Key::Secret::RSA;
 use strict;
@@ -11,7 +11,7 @@ use Crypt::OpenPGP::ErrorHandler;
 use base qw( Crypt::OpenPGP::Key::Secret Crypt::OpenPGP::ErrorHandler );
 
 sub secret_props { qw( d p q u ) }
-sub sig_props { qw( c ) }
+*sig_props = \&Crypt::OpenPGP::Key::Public::RSA::sig_props;
 *public_props = \&Crypt::OpenPGP::Key::Public::RSA::public_props;
 *crypt_props = \&Crypt::OpenPGP::Key::Public::RSA::crypt_props;
 *size = \&Crypt::OpenPGP::Key::Public::RSA::size;

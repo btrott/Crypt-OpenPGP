@@ -1,10 +1,10 @@
-# $Id: OpenPGP.pm,v 1.58 2001/08/09 16:55:14 btrott Exp $
+# $Id: OpenPGP.pm,v 1.68 2001/08/15 22:11:15 btrott Exp $
 
 package Crypt::OpenPGP;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.14';
+$VERSION = '0.15';
 
 use Crypt::OpenPGP::Constants qw( DEFAULT_CIPHER );
 use Crypt::OpenPGP::KeyRing;
@@ -105,10 +105,15 @@ sub sign {
         my $kb = $ring->find_keyblock_by_keyid(pack 'H*', $kid) or
             return $pgp->error("Could not find secret key with KeyID $kid");
         $cert = $kb->signing_key;
+        $cert->uid($kb->primary_uid);
     }
     if ($cert->is_protected) {
-        my $pass = $param{Passphrase} or
-            return $pgp->error("Need passphrase to decrypt secret key");
+        my $pass = $param{Passphrase};
+        if (!defined $pass && (my $cb = $param{PassphraseCallback})) {
+            $pass = $cb->($cert);
+        }
+        return $pgp->error("Need passphrase to unlock secret key")
+            unless $pass;
         $cert->unlock($pass) or
             return $pgp->error("Secret key unlock failed: " . $cert->errstr);
     }
@@ -155,13 +160,6 @@ sub sign {
     $sig_data;
 }
 
-## Could be verifying either a detached signature,
-## or a "message" containing both signature and original
-## data. The "message" can, in turn, be either:
-##     onepass-sig, data, signature
-## or
-##     signature, data
-## so we need to be able to read both formats
 sub verify {
     my $pgp = shift;
     my %param = @_;
@@ -171,18 +169,17 @@ sub verify {
             return $pgp->error("Need Signature or SigFile to verify");
     my %arg = $param{Signature} ? (Data => $param{Signature}) :
                                   (Filename => $param{SigFile});
-    my $msg = Crypt::OpenPGP::Message->new;
-    $msg->read( %arg ) or
-        return $pgp->error("Reading signature failed: " . $msg->errstr);
-    my @pieces = @{ $msg->{pieces} };
+    my $msg = Crypt::OpenPGP::Message->new( %arg ) or
+        return $pgp->error("Reading signature failed: " .
+            Crypt::OpenPGP::Message->errstr);
+    my @pieces = $msg->pieces;
     if (ref($pieces[0]) eq 'Crypt::OpenPGP::Compressed') {
         $data = $pieces[0]->decompress or
             return $pgp->error("Decompression error: " . $pieces[0]->errstr);
-        my $msg2 = Crypt::OpenPGP::Message->new;
-        $msg2->read( Data => $data) or
+        $msg = Crypt::OpenPGP::Message->new( Data => $data ) or
             return $pgp->error("Reading decompressed data failed: " .
-                $msg2->errstr);
-        @pieces = @{ $msg2->{pieces} };
+                Crypt::OpenPGP::Message->errstr);
+        @pieces = $msg->pieces;
     }
     if (ref($pieces[0]) eq 'Crypt::OpenPGP::OnePassSig') {
         ($data, $sig) = @pieces[1,2];
@@ -205,16 +202,19 @@ sub verify {
             $data = Crypt::OpenPGP::Plaintext->new( Data => $fdata );
        }
     }
-    my $key_id = $sig->key_id;
-    my $ring = Crypt::OpenPGP::KeyRing->new( Filename => $pgp->{PubRing} );
-    my $kb = $ring->find_keyblock_by_keyid($key_id) or
-        return $pgp->error("Could not find public key with KeyID " .
-            unpack('H*', $key_id));
-    my $cert = $kb->signing_key;
+    my($cert, $kb);
+    unless ($cert = $param{Key}) {
+        my $key_id = $sig->key_id;
+        my $ring = Crypt::OpenPGP::KeyRing->new( Filename => $pgp->{PubRing} );
+        $kb = $ring->find_keyblock_by_keyid($key_id) or
+            return $pgp->error("Could not find public key with KeyID " .
+                unpack('H*', $key_id));
+        $cert = $kb->signing_key;
+    }
     my $dgst = $sig->hash_data($data) or
         return $pgp->error( $sig->errstr );
     $cert->key->public_key->verify($sig, $dgst) ?
-        ($kb->primary_uid || 1) : 0;
+        ($kb && $kb->primary_uid ? $kb->primary_uid : 1) : 0;
 }
 
 sub encrypt {
@@ -237,6 +237,7 @@ sub encrypt {
                          KeyID      => $param{SignKeyID},
                          Compat     => $param{Compat},
                          Passphrase => $param{SignPassphrase},
+                         PassphraseCallback => $param{SignPassphraseCallback},
                   );
     } else {
         my $pt = Crypt::OpenPGP::Plaintext->new( Data => $data,
@@ -256,25 +257,46 @@ sub encrypt {
     my $sym_alg = $param{Cipher} ?
         Crypt::OpenPGP::Cipher->alg_id($param{Cipher}) : DEFAULT_CIPHER;
     my(@sym_keys);
-    if ($param{Key} || $param{KeyID}) {
+    if ($param{Recipients} && !ref($param{Recipients})) {
+        $param{Recipients} = [ $param{Recipients} ];
+    }
+    if (my $kid = delete $param{KeyID}) {
+        my @kid = ref $kid eq 'ARRAY' ? @$kid : $kid;
+        push @{ $param{Recipients} }, @kid;
+    }
+    if ($param{Key} || $param{Recipients}) {
         require Crypt::OpenPGP::SessionKey;
         my @keys;
-        if ($param{KeyID}) {
-            my @kid = ref $param{KeyID} eq 'ARRAY' ? @{$param{KeyID}} :
-                                                       $param{KeyID};
+        if (my $recips = $param{Recipients}) {
+            my @recips = ref $recips eq 'ARRAY' ? @$recips : $recips;
             my $ring = Crypt::OpenPGP::KeyRing->new( Filename =>
                 $pgp->{PubRing} );
-            for (@kid) {
-                my $kb = $ring->find_keyblock_by_keyid(pack 'H*', $_) or
-                    return $pgp->error("Could not find pubkey with KeyID $_");
-                push @keys, $kb->encrypting_key;
+            my %seen;
+            for my $r (@recips) {
+                my($lr, @kb) = (length($r));
+                if (($lr == 8 || $lr == 16) && $r !~ /[^\da-fA-F]/) {
+                    @kb = $ring->find_keyblock_by_keyid(pack 'H*', $r);
+                } else {
+                    @kb = $ring->find_keyblock_by_uid($r);
+                }
+                for my $kb (@kb) {
+                    next unless my $cert = $kb->encrypting_key;
+                    next if $seen{ $cert->key_id }++;
+                    $cert->uid($kb->primary_uid);
+                    push @keys, $cert;
+                }
+            }
+            if (my $cb = $param{RecipientsCallback}) {
+                @keys = @{ $cb->(\@keys) };
             }
         }
         if ($param{Key}) {
             push @keys, ref $param{Key} eq 'ARRAY' ? @{$param{Key}} :
                                                        $param{Key};
         }
-        for my $key (@keys) { 
+        return $pgp->error("No known recipients for encryption")
+            unless @keys;
+        for my $key (@keys) {
             push @sym_keys, Crypt::OpenPGP::SessionKey->new(
                                 Key    => $key,
                                 SymKey => $key_data,
@@ -326,40 +348,41 @@ sub decrypt {
             return $pgp->error("Need either 'Data' or 'Filename' to decrypt");
         $data = $pgp->_read_files($file) or return $pgp->error($pgp->errstr);
     }
-    my $msg = Crypt::OpenPGP::Message->new;
-    $msg->read( Data => $data ) or
-        return $pgp->error("Reading data packets failed: " . $msg->errstr);
-    return $pgp->error("No packets found in message") unless
-        $msg->{pieces} && @{ $msg->{pieces} };
-    my @pieces = @{ $msg->{pieces} };
+    my $msg = Crypt::OpenPGP::Message->new( Data => $data ) or
+        return $pgp->error("Reading data packets failed: " .
+            Crypt::OpenPGP::Message->errstr);
+    my @pieces = $msg->pieces;
+    return $pgp->error("No packets found in message") unless @pieces;
     while (ref($pieces[0]) eq 'Crypt::OpenPGP::Marker') {
         shift @pieces;
     }
     my($key, $alg);
     if (ref($pieces[0]) eq 'Crypt::OpenPGP::SessionKey') {
-        my $sym_key;
-        while (ref($pieces[0]) eq 'Crypt::OpenPGP::SessionKey') {
-            $sym_key = shift @pieces;
-            if ($param{KeyID}) { 
-                if ($sym_key->key_id ne pack 'H*', $param{KeyID}) { 
-                    if (ref($pieces[0] ne 'Crypt::OpenPGP::SessionKey')) { 
-                        return $pgp->error("Can't find key with ID " .
-                            unpack('H*', $sym_key->key_id));
-                    } 
-                } else { 
+        my($sym_key, $cert) = (shift @pieces);
+        unless ($cert = $param{Key}) {
+            my $ring = Crypt::OpenPGP::KeyRing->new(Filename =>
+                $pgp->{SecRing});
+            my($kb);
+            while (ref($sym_key) eq 'Crypt::OpenPGP::SessionKey') {
+                if ($kb = $ring->find_keyblock_by_keyid($sym_key->key_id)) {
                     shift @pieces
                         while ref($pieces[0]) eq 'Crypt::OpenPGP::SessionKey';
+                    last;
                 }
-             } else { last }
+                $sym_key = shift @pieces;
+            }
+            return $pgp->error("Can't find a secret key to decrypt message")
+                unless $kb;
+            $cert = $kb->encrypting_key;
+            $cert->uid($kb->primary_uid);
         }
-        my $ring = Crypt::OpenPGP::KeyRing->new( Filename => $pgp->{SecRing} );
-        my $kb = $ring->find_keyblock_by_keyid($sym_key->key_id) or
-            return $pgp->error("Can't find key with ID " .
-                unpack('H*', $sym_key->key_id));
-        my $cert = $kb->encrypting_key;
         if ($cert->is_protected) {
-            my $pass = $param{Passphrase} or
-                return $pgp->error("Need passphrase to decrypt secret key");
+            my $pass = $param{Passphrase};
+            if (!defined $pass && (my $cb = $param{PassphraseCallback})) {
+                $pass = $cb->($cert);
+            }
+            return $pgp->error("Need passphrase to unlock secret key")
+                unless $pass;
             $cert->unlock($pass) or
                 return $pgp->error("Seckey unlock failed: " . $cert->errstr);
         }
@@ -384,9 +407,8 @@ sub decrypt {
     if (ref($pt) eq 'Crypt::OpenPGP::Compressed') {
         $data = $pt->decompress or
             return $pgp->error("Decompression error: " . $pt->errstr);
-        my $msg = Crypt::OpenPGP::Message->new;
-        $msg->read( Data => $data );
-        my @pieces = @{ $msg->{pieces} };
+        my $msg = Crypt::OpenPGP::Message->new( Data => $data );
+        my @pieces = $msg->pieces;
         if (ref($pieces[0]) eq 'Crypt::OpenPGP::OnePassSig' ||
             ref($pieces[0]) eq 'Crypt::OpenPGP::Signature') {
             $pt = $pieces[1];
@@ -667,22 +689,37 @@ I<Filename> is optional; if unspecified, you should specify the data
 in I<Data>, above. If both I<Data> and I<Filename> are specified, the
 data in I<Data> overrides that in I<Filename>.
 
-=item * KeyID
+=item * Recipients
 
-The ID of the public key that should be used to decrypt the symmetric
-key. In other words, the ID of the key with which the message should
-be encrypted. The value of the key ID should be specified as either
-an 8-digit or 16-digit hexadecimal number.
+The intended recipients of the encrypted message. In other words,
+either the key IDs or user IDs of the public keys that should be used
+to encrypt the message. Each recipient specified should be either a
+key ID--an 8-digit or 16-digit hexadecimal number--or part of a user
+ID that can be used to look up the user's public key in your keyring.
+Examples:
+
+    8-digit hex key ID: 123ABC45
+    16-digit hex key ID: 678DEF90123ABC45
+    (Part of) User ID: foo@bar
+
+Note that the 8-digit hex key ID is the last 8 digits of the (long)
+16-digit hex key ID.
 
 If you wish to encrypt the message for multiple recipients, the value
-of I<KeyID> should be a reference to a list of key IDs (as defined
-above). For each ID in the list, the public key will be looked up
-in your public keyring, and an encrypted session key packet will be
-added to the encrypted message.
+of I<Recipients> should be a reference to a list of recipients (as
+defined above). For each recipient in the list, the public key will be
+looked up in your public keyring, and an encrypted session key packet
+will be added to the encrypted message.
 
 This argument is optional; if not provided you should provide the
 I<Passphrase> option (below) to perform symmetric-key encryption when
 encrypting the session key.
+
+=item * KeyID
+
+A deprecated alias for I<Recipients> (above). There is no need to use
+I<KeyID>, as its functionality has been completely subsumed into the
+I<Recipients> parameter.
 
 =item * Passphrase
 
@@ -695,6 +732,37 @@ when encrypting data locally on disk).
 This argument is optional; if not provided you should provide the
 I<KeyID> option (above) to perform public-key encryption when encrypting
 the session key.
+
+=item * RecipientsCallback
+
+After the list of recipients for a message (as given in I<Recipients>,
+above) has been mapped into a set of keys from your public keyring,
+you can use I<RecipientsCallback> to review/modify that list of keys.
+The value of I<RecipientsCallback> should be a reference to a
+subroutine; when invoked that routine will be handed a reference to
+an array of I<Crypt::OpenPGP::Certificate> objects. It should then
+return a reference to a list of such objects.
+
+This can be useful particularly when supplying user IDs in the list
+of I<Recipients> for an encrypted message. Since user IDs are looked
+up using partial matches (eg. I<b> could match I<b>, I<abc>, I<bar>,
+etc.), one intended recipient may actually turn up multiple keys.
+You can use I<RecipientsCallback> to audit that list before actually
+encrypting the message:
+
+    my %BAD_KEYS = (
+        ABCDEF1234567890 => 1,
+        1234567890ABCDEF => 1,
+    );
+    my $cb = sub {
+        my $keys = shift;
+        my @return;
+        for my $cert (@$keys) {
+            push @return, $cert unless $BAD_KEYS{ $cert->key_id_hex };
+        }
+        \@returns;
+    };
+    my $ct = $pgp->encrypt( ..., RecipientsCallback => $cb, ... );
 
 =item * Cipher
 
@@ -736,7 +804,18 @@ The passphrase to unlock the secret key to be used when signing the
 message.
 
 If you are signing the message--that is, if you have provided the
-I<SignKeyID> parameter--this argument is required.
+I<SignKeyID> parameter--either this argument or I<SignPassphraseCallback>
+is required.
+
+=item * SignPassphraseCallback
+
+The callback routine to enable the passphrase being passed in through
+some user-defined routine. See the I<PassphraseCallback> parameter for
+I<sign>, below.
+
+If you are signing the message--that is, if you have provided the
+I<SignKeyID> parameter--either this argument or I<SignPassphrase> is
+required.
 
 =item * MDC
 
@@ -818,7 +897,28 @@ data in I<Data> overrides that in I<Filename>.
 
 The passphrase to unlock your secret key.
 
-This argument is mandatory if your secret key is protected.
+This argument is optional if your secret key is protected; if not
+provided you should supply the I<PassphraseCallback> parameter (below).
+
+=item * PassphraseCallback
+
+A callback routine to allow interactive users (for example) to enter the
+passphrase for the specific key being used to decrypt the ciphertext.
+This is useful when your ciphertext is encrypted to several recipients,
+if you do not necessarily know ahead of time the secret key that will be
+used to decrypt it. It is also useful when you wish to provide an
+interactive user with some feedback about the key being used to decrypt
+the message.
+
+The value of this parameter should be a reference to a subroutine. This
+routine will be called when a passphrase is needed from the user, and
+it will be given one argument: a I<Crypt::OpenPGP::Certificate> object
+representing the secret key. You can use the information in this object
+to present details about the key to the user. The callback routine
+should return the passphrase, a scalar string.
+
+This argument is optional if your secret key is protected; if not
+provided you should supply the I<Passphrase> parameter (above).
 
 =back
 
@@ -895,7 +995,25 @@ This argument is mandatory.
 
 The passphrase to unlock your secret key.
 
-This argument is mandatory if your secret key is protected.
+This argument is optional if your secret key is protected; if not
+provided you should supply the I<PassphraseCallback> parameter (below).
+
+=item * PassphraseCallback
+
+A callback routine to allow interactive users (for example) to enter the
+passphrase for the specific key being used to sign the message. This is
+useful when you wish to provide an interactive user with some feedback
+about the key being used to sign the message.
+
+The value of this parameter should be a reference to a subroutine. This
+routine will be called when a passphrase is needed from the user, and
+it will be given one argument: a I<Crypt::OpenPGP::Certificate> object
+representing the secret key. You can use the information in this object
+to present details about the key to the user. The callback routine
+should return the passphrase, a scalar string.
+
+This argument is optional if your secret key is protected; if not
+provided you should supply the I<Passphrase> parameter (above).
 
 =item * Digest
 
@@ -1049,6 +1167,17 @@ not give a passphrase to unlock your secret key:
 
     my $pt = $pgp->decrypt( Filename => "encrypted_data" )
         or die "Decryption failed: ", $pgp->errstr;
+
+=head1 SAMPLES/TUTORIALS
+
+Take a look at F<bin/pgplet> for an example of usage of I<Crypt::OpenPGP>.
+It gives you an example of using the four main major methods (I<encrypt>,
+I<sign>, I<decrypt>, and I<verify>), as well as the various parameters to
+those methods. It also demonstrates usage of the callback parameters (eg.
+I<PassphraseCallback>).
+
+F<bin/pgplet> currently does not have any documentation, but its interface
+mirrors that of I<gpg>.
 
 =head1 LICENSE
 

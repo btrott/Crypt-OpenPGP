@@ -1,4 +1,4 @@
-# $Id: Certificate.pm,v 1.14 2001/08/06 21:09:09 btrott Exp $
+# $Id: Certificate.pm,v 1.18 2001/08/12 23:31:53 btrott Exp $
 
 package Crypt::OpenPGP::Certificate;
 use strict;
@@ -74,6 +74,11 @@ sub is_subkey { $_[0]->{is_subkey} }
 sub is_protected { $_[0]->{is_protected} }
 sub can_encrypt { $_[0]->{key}->can_encrypt }
 sub can_sign { $_[0]->{key}->can_sign }
+sub uid {
+    my $cert = shift;
+    $cert->{_uid} = shift if @_;
+    $cert->{_uid};
+}
 
 sub public_cert {
     my $cert = shift;
@@ -100,12 +105,15 @@ sub key_id {
     $cert->{key_id};
 }
 
+sub key_id_hex { uc unpack 'H*', $_[0]->key_id }
+
 sub fingerprint {
     my $cert = shift;
     unless ($cert->{fingerprint}) {
         if ($cert->{version} < 4) {
             my $dgst = Crypt::OpenPGP::Digest->new('MD5');
-            $cert->{fingerprint} = $dgst->hash($cert->{key}->n.$cert->{key}->e);
+            $cert->{fingerprint} =
+                $dgst->hash(mp2bin($cert->{key}->n) . mp2bin($cert->{key}->e));
         }
         else {
             my $data = $cert->public_cert->save;
@@ -113,6 +121,13 @@ sub fingerprint {
         }
     }
     $cert->{fingerprint};
+}
+
+sub fingerprint_hex { uc unpack 'H*', $_[0]->fingerprint }
+
+sub fingerprint_words {
+    require Crypt::OpenPGP::Words;
+    Crypt::OpenPGP::Words->encode($_[0]->fingerprint);
 }
 
 sub _gen_v4_fingerprint {
@@ -258,7 +273,8 @@ sub unlock {
     my $cert = shift;
     return 1 unless $cert->{is_secret} && $cert->{is_protected};
     my($passphrase) = @_;
-    my $cipher = Crypt::OpenPGP::Cipher->new($cert->{cipher});
+    my $cipher = Crypt::OpenPGP::Cipher->new($cert->{cipher}) or
+        return $cert->error( Crypt::OpenPGP::Cipher->errstr );
     my $key = $cert->{s2k}->generate($passphrase, $cipher->keysize);
     $cipher->init($key, $cert->{iv});
     my @sec = $cert->{key}->secret_props;
@@ -462,11 +478,25 @@ call I<errstr> to get the error message.
 
 =head2 $cert->fingerprint
 
-Returns the key fingerprint.
+Returns the key fingerprint as an octet string.
+
+=head2 $cert->fingerprint_hex
+
+Returns the key fingerprint as a hex string.
+
+=head2 $cert->fingerprint_words
+
+Returns the key fingerprint as a list of English words, where each word
+represents one octet from the fingerprint. See I<Crypt::OpenPGP::Words>
+for more details about the encoding.
 
 =head2 $cert->key_id
 
 Returns the key ID.
+
+=head2 $cert->key_id_hex
+
+Returns the key ID as a hex string.
 
 =head2 $cert->key
 

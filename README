@@ -1,4 +1,4 @@
-$Id: README,v 1.5 2001/07/28 00:58:33 btrott Exp $
+$Id: README,v 1.6 2001/08/15 22:11:14 btrott Exp $
 
 This is Crypt::OpenPGP. It provides a pure-Perl implementation of the
 OpenPGP standard, including support for all versions of PGP and
@@ -62,5 +62,16 @@ Download it, unpack it, then build it as per the usual:
 Then install it:
 
     % make install
+
+SAMPLES/TUTORIALS
+
+Take a look at bin/pgplet for an example of usage of Crypt::OpenPGP.
+It gives you an example of using the four main major methods (encrypt,
+sign, decrypt, and verify), as well as the various parameters to those
+methods. It also demonstrates usage of the callback parameters (eg.
+PassphraseCallback).
+
+bin/pgplet currently does not have any documentation, but its interface
+mirrors that of gpg.
 
 Benjamin Trott / ben@rhumba.pair.com

@@ -1,47 +1,41 @@
-$Id: ToDo,v 1.24 2001/08/09 19:12:05 btrott Exp $
+$Id: ToDo,v 1.31 2001/08/12 23:33:07 btrott Exp $
 
 Crypt::OpenPGP todo
 --------
 xx * Crypt::OpenPGP main USAGE docs
 xx * docs (for other classes)
+xx * PassphraseCallback param for sign and decrypt. give callback function the
+     Certificate object (anything else?), let it ask the user for a passphrase.
+xx * RecipientCallback for encrypt
 * support for CAST5, ElGamal signing
 xx * clear text signatures; need to make text into canonical text for
      signing
 xx * more support for looking up keys in keyring (eg. look up userid, etc.)
 xx * encrypt and sign/decrypt and verify
-* caching in find_keyblock. let caller pass in 'marker' code-ref that, given
-  a packet, returns a unique 'marker' to point to that keyblock. eg. lookup
-  by keyid returns the certificate keyid, lookup by userid returns the
-  userid, etc. then, two levels of caching: 1) store offsets of keyblocks
-  by marker; 2) store already-parsed keyblocks by marker. we could let the
-  calling function do the latter, of course, ie. find_keyblock_by_keyid
-  would manage a hash of keyids => keyblocks. also: when reading a keyblock
-  (after already finding the start offset), maybe don't parse SECRET_KEY
-  and PUBLIC_KEY packets? since we already have the start cert there is
-  no use in parsing the next one we come to, because that indicates the
-  start of a new keyblock.
-* add KeyRing::find_keyblock_by_index; given index, return that keyblock.
-  also allow negative indices. create map of keyring on KeyRing::init.
+xx * add KeyRing::find_keyblock_by_index; given index, return that keyblock.
+     also allow negative indices. create map of keyring on KeyRing::init.
 xx * KeyBlock needs some methods to "do stuff" with the keyblock contents;
-    for example, there should be a method to return: 1) the master key;
-    2) a key given a key ID; 3) the key to be used for encryption, and the
-    key to be used for signing.
+     for example, there should be a method to return: 1) the master key;
+     2) a key given a key ID; 3) the key to be used for encryption, and the
+     key to be used for signing.
 xx * KeyRing::find_keyblock_by_keyid should no longer return certificate if
-    called in list context. Instead it should just return a list of all
-    matching keys if called in list context, first match otherwise. Caller
-    should use KeyBlock methods to get actual certificate.
+     called in list context. Instead it should just return a list of all
+     matching keys if called in list context, first match otherwise. Caller
+     should use KeyBlock methods to get actual certificate.
 * KeyRing support multiple keyrings so that lookups occur over multiple
   rings.
 xx * compatibility param to encrypt and sign (and keygen, maybe), eg.
      Compat => 'PGP2' turns on Version => 3 and Cipher => 'IDEA'
+* read existing PGPx/GnuPG config files into Config object
 * smart detection and description of arbitrary files, eg. pass in some
   data and give back 'RSA signed message, Version 3, probably PGP2'
 xx * compressed packets
 xx * symmetrically-encrypted encrypted data packets
 * subkey generation
-* add PGPWords from Mike Dillon; probably should add an interface to this
-  through Certificate? ie. $cert->word_fingerprint, which would take
-  $cert->fingerprint and run it through the Words module.
+xx * add PGPWords from Mike Dillon; probably should add an interface to this
+    through Certificate? ie. $cert->word_fingerprint, which would take
+    $cert->fingerprint and run it through the Words module.
+* keyserver capabilities, key import
 xx * encrypted MDC packets
 xx * make find_keyblock_by_keyid work with subkeys
 xx * key generation, secret certificate saving and encrypting
@@ -58,8 +52,19 @@ xx * generate fingerprint on cert while reading in (in 'parse'); that way we
   signatures, etc.
 xx * better installation: determine prereqs based on answers to prompts
      about preferred ciphers, pk systems, etc.
-* use key flags to determine "what a key can do" (ie. signing, encryption)
+* use key flags to determine key capabilities (signing, encryption, etc.)
 xx * support writing v4 packet headers
 * add some example scripts
+* caching in find_keyblock. let caller pass in 'marker' code-ref that, given
+  a packet, returns a unique 'marker' to point to that keyblock. eg. lookup
+  by keyid returns the certificate keyid, lookup by userid returns the
+  userid, etc. then, two levels of caching: 1) store offsets of keyblocks
+  by marker; 2) store already-parsed keyblocks by marker. we could let the
+  calling function do the latter, of course, ie. find_keyblock_by_keyid
+  would manage a hash of keyids => keyblocks. also: when reading a keyblock
+  (after already finding the start offset), maybe don't parse SECRET_KEY
+  and PUBLIC_KEY packets? since we already have the start cert there is
+  no use in parsing the next one we come to, because that indicates the
+  start of a new keyblock.
 * improve CRC24 implementation by using C implementation. problem:
   String::CRC does not work for me (doesn't accept init, for one thing).

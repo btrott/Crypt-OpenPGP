@@ -1,6 +1,45 @@
-$Id: Changes,v 1.43 2001/08/09 16:55:01 btrott Exp $
+$Id: Changes,v 1.54 2001/08/15 22:11:14 btrott Exp $
 
 Revision history for Crypt::OpenPGP
+
+0.15  2001.08.15
+    - Added bin/pgplet as an example of Crypt::OpenPGP usage.
+    - Added PassphraseCallback parameter to Crypt::OpenPGP::decrypt
+      and Crypt::OpenPGP::sign; this callback will be invoked when a
+      passphrase to unlock the secret key is not provided, but is needed.
+      Allows more flexibility etc.
+    - Added RecipientsCallback parameter to Crypt::OpenPGP::encrypt;
+      this callback will be invoked after recipients have been mapped
+      to public keys, and allows review/modification of that key list.
+    - Crypt::OpenPGP::decrypt will now look through all encrypted
+      session key packets until it finds one for which we have a
+      secret key. Once it finds that known key, it uses that key to
+      decrypt the message.
+    - Added Recipients param to Crypt::OpenPGP::encrypt, accepts either
+      key IDs or user IDs. Deprecated usage of KeyID.
+    - Fixed bug in Certificate::fingerprint with version 3 keys. Was
+      concatenating integers when should have been concatenating octet
+      string representations.
+    - Added Crypt::OpenPGP::Words, which encodes octet/hex strings into
+      lists of English words. Thanks to Mike Dillon for sending me his
+      PGPWords.pm, which this module is based on.
+    - Added Certificate::fingerprint_words and fingerprint_hex. The
+      former uses Crypt::OpenPGP::Words to encode the fingerprint into a
+      list of English words; the latter returns the fingerprint as a
+      string of hex digits.
+    - Added KeyRing::find_keyblock_by_index, which, given an index into
+      a list of keyblocks, returns the keyblock at that index. Thanks to
+      Vipul for the idea.
+    - Crypt::OpenPGP::Message interface changed: instead of passing
+      params to read, now pass params to new, and read is called
+      automatically. Then call pieces to get pieces of message. This
+      should not affect anyone, unless you were directly accessing
+      the $msg->{pieces} member, for lack of a better interface :).
+    - Added Key param to Crypt::OpenPGP::decrypt and Crypt::OpenPGP::verify;
+      Key should be a Certificate object. This has the effect of bypassing
+      the keyring lookup and might be useful for decrypting using a key
+      deserialized from some external source (network, database, etc.).
+      Thanks to Vipul for the idea.
 
 0.14  2001.08.09
     - Crypt::OpenPGP::CFB now works in both standard and PGP-variant

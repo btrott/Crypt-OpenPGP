@@ -4,6 +4,7 @@ MANIFEST
 Makefile.PL
 README
 ToDo
+bin/pgplet
 lib/Crypt/DES_EDE3.pm
 lib/Crypt/OpenPGP.pm
 lib/Crypt/OpenPGP/Armour.pm
@@ -41,6 +42,10 @@ lib/Crypt/OpenPGP/Signature/SubPacket.pm
 lib/Crypt/OpenPGP/Trust.pm
 lib/Crypt/OpenPGP/UserID.pm
 lib/Crypt/OpenPGP/Util.pm
+lib/Crypt/OpenPGP/Words.pm
+lib/Crypt/OpenPGP/trans.pl
+lib/Crypt/OpenPGP/wordlist
+lib/Crypt/OpenPGP/wordlist-3
 t/00-compile.t
 t/01-util.t
 t/02-buffer.t

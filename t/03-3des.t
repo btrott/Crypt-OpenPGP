@@ -1,4 +1,4 @@
-# $Id: 03-3des.t,v 1.2 2001/07/24 19:21:48 btrott Exp $
+# $Id: 03-3des.t,v 1.3 2001/08/10 04:15:12 btrott Exp $
 
 use strict;
 
@@ -11,7 +11,7 @@ BEGIN {
         exit;
     }
 
-    plan tests => 7;
+    plan tests => 8;
 }
 
 my $KEY = pack "H64", ("0123456789ABCDEF" x 4);
@@ -20,6 +20,7 @@ my($des1, $des2);
 
 $des1 = Crypt::DES_EDE3->new($KEY);
 ok($des1);
+ok($des1->keysize, 24);
 
 $des2 = Crypt::DES_EDE3->new($KEY);
 ok($des2);
