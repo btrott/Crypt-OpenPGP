@@ -1,4 +1,4 @@
-$Id: README,v 1.8 2002/07/12 23:59:37 btrott Exp $
+$Id: README,v 1.9 2002/12/10 01:47:57 btrott Exp $
 
 This is Crypt::OpenPGP. It provides a pure-Perl implementation of the
 OpenPGP standard, including support for all versions of PGP and
@@ -75,4 +75,4 @@ PassphraseCallback).
 bin/pgplet currently does not have any documentation, but its interface
 mirrors that of gpg.
 
-Benjamin Trott / ben@rhumba.pair.com
+Benjamin Trott / cpan@stupidfool.org

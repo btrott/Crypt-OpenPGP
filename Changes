@@ -1,6 +1,20 @@
-$Id: Changes,v 1.67 2002/10/12 22:02:43 btrott Exp $
+$Id: Changes,v 1.68 2002/12/10 01:48:30 btrott Exp $
 
 Revision history for Crypt::OpenPGP
+
+1.03 2002.12.09
+    - Makefile.PL now uses ExtUtils::AutoInstall. Thanks to Autrijus Tang
+      for the note.
+    - SIGNATURE file now included with distribution.
+    - Added --version to bin/pgplet, which lists supported ciphers, digests,
+      etc., along with version information.
+    - Added Crypt::OpenPGP::KeyBlock::save_armoured, to save an armoured
+      version of the keyblock (useful for exporting public keys).
+    - encrypt and verify no longer fail if there are no public keyrings,
+      in case lookup in a keyserver is desired.
+    - Added Crypt::OpenPGP::Digest::supported and
+      Crypt::OpenPGP::Cipher::supported.
+    - Fixed bug where signed cleartext has \r characters in the header.
 
 1.02 2002.10.12
     - encrypt and verify now support auto-retrieval of public keys from

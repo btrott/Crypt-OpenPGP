@@ -1,4 +1,4 @@
-# $Id: Cipher.pm,v 1.18 2002/09/05 23:49:39 btrott Exp $
+# $Id: Cipher.pm,v 1.19 2002/12/10 01:43:55 btrott Exp $
 
 package Crypt::OpenPGP::Cipher;
 use strict;
@@ -64,6 +64,15 @@ sub alg { $_[0]->{__alg} }
 sub alg_id {
     return $_[0]->{__alg_id} if ref($_[0]);
     $ALG_BY_NAME{$_[1]} || $_[1];
+}
+sub supported {
+    my $class = shift;
+    my %s;
+    for my $cid (keys %ALG) {
+        my $cipher = $class->new($cid);
+        $s{$cid} = $cipher->alg if $cipher;
+    }
+    \%s;
 }
 
 package Crypt::OpenPGP::Cipher::IDEA;

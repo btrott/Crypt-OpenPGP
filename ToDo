@@ -1,9 +1,10 @@
-$Id: ToDo,v 1.36 2002/10/12 22:02:43 btrott Exp $
+$Id: ToDo,v 1.37 2002/12/10 01:47:45 btrott Exp $
 
 Crypt::OpenPGP todo
 -------------------
 * add note/code for stripping utf8 from passphrase
 * more accessor functions
+* make handle return plaintext when just a signed message
 * add test for uncompressed decrypted packets
 * KeyRing support multiple keyrings so that lookups occur over multiple
   rings.

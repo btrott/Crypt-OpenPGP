@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: pgplet,v 1.14 2002/10/12 21:55:47 btrott Exp $
+# $Id: pgplet,v 1.15 2002/12/10 01:42:39 btrott Exp $
 
 use lib 'lib';
 
@@ -16,9 +16,13 @@ GetOptions(\%opts, "sign|s", "encrypt|e", "detach-sign|b",
                    "list-public-keys", "list-secret-keys",
                    "fingerprint", "keyring=s", "secret-keyring=s",
                    "recipient|r=s@", "armour|a", "clearsign",
-                   "symmetric|c", "list-packets",
+                   "symmetric|c", "list-packets", "version|v",
                    "enarmour", "dearmour", "compat=s",
                    "keyserver=s", "local-user|u=s");
+
+if ($opts{version}) {
+    print(version()), exit;
+}
 
 my %arg;
 $arg{PubRing} = $opts{keyring} if $opts{keyring};
@@ -257,6 +261,22 @@ sub do_list_packets {
             print ref($pkt), "\n";
         }
     }
+}
+
+sub version {
+    my $v = <<VERSION;
+pgplet (Crypt::OpenPGP) $Crypt::OpenPGP::VERSION
+
+Supported algorithms:
+Public key: RSA, DSA, ElGamal
+VERSION
+    require Crypt::OpenPGP::Cipher;
+    $v .= "Cipher: " .
+        join(', ', values %{ Crypt::OpenPGP::Cipher->supported }) . "\n";
+    require Crypt::OpenPGP::Digest;
+    $v .= "Hash: " .
+        join(', ', values %{ Crypt::OpenPGP::Digest->supported }) . "\n";
+    $v;
 }
 
 sub passphrase_cb {

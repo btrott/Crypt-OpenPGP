@@ -1,4 +1,4 @@
-# $Id: Digest.pm,v 1.5 2001/07/28 22:18:30 btrott Exp $
+# $Id: Digest.pm,v 1.6 2002/12/10 01:43:55 btrott Exp $
 
 package Crypt::OpenPGP::Digest;
 use strict;
@@ -37,6 +37,16 @@ sub alg {
 sub alg_id {
     return $_[0]->{__alg_id} if ref($_[0]);
     $ALG_BY_NAME{$_[1]} || $_[1];
+}
+
+sub supported {
+    my $class = shift;
+    my %s;
+    for my $did (keys %ALG) {
+        my $digest = $class->new($did);
+        $s{$did} = $digest->alg if $digest;
+    }
+    \%s;
 }
 
 package Crypt::OpenPGP::Digest::MD5;

@@ -1,4 +1,4 @@
-# $Id: KeyBlock.pm,v 1.5 2001/08/06 21:12:17 btrott Exp $
+# $Id: KeyBlock.pm,v 1.6 2002/12/10 01:45:34 btrott Exp $
 
 package Crypt::OpenPGP::KeyBlock;
 use strict;
@@ -67,6 +67,15 @@ sub save {
     Crypt::OpenPGP::PacketFactory->save( @{ $kb->{order} } );
 }
 
+sub save_armoured {
+    my $kb = shift;
+    require Crypt::OpenPGP::Armour;
+    Crypt::OpenPGP::Armour->armour(
+                Data => $kb->save,
+                Object => 'PUBLIC KEY BLOCK'
+        );
+}
+
 1;
 __END__
 
@@ -123,6 +132,11 @@ Serializes each of the packets contained in the I<KeyBlock> object,
 in order, and returns the serialized data. This output can then be
 fed to I<Crypt::OpenPGP::Armour> for ASCII-armouring, for example,
 or can be written out to a keyring file.
+
+=head2 $kb->save_armoured
+
+Saves an armoured version of the keyblock (this is useful for exporting
+public keys).
 
 =head1 AUTHOR & COPYRIGHTS
 

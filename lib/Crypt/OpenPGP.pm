@@ -1,10 +1,10 @@
-# $Id: OpenPGP.pm,v 1.89 2002/10/12 21:35:46 btrott Exp $
+# $Id: OpenPGP.pm,v 1.90 2002/12/10 01:43:00 btrott Exp $
 
 package Crypt::OpenPGP;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '1.02';
+$VERSION = '1.03';
 
 use Crypt::OpenPGP::Constants qw( DEFAULT_CIPHER );
 use Crypt::OpenPGP::KeyRing;
@@ -372,9 +372,8 @@ sub verify {
     my($cert, $kb);
     unless ($cert = $param{Key}) {
         my $key_id = $sig->key_id;
-        my $ring = $pgp->pubrings->[0]
-            or return $pgp->error("No public keyrings");
-        unless ($kb = $ring->find_keyblock_by_keyid($key_id)) {
+        my $ring = $pgp->pubrings->[0];
+        unless ($ring && ($kb = $ring->find_keyblock_by_keyid($key_id))) {
             my $cfg = $pgp->{cfg};
             if ($cfg->get('AutoKeyRetrieve') && $cfg->get('KeyServer')) {
                 require Crypt::OpenPGP::KeyServer;
@@ -465,8 +464,7 @@ sub encrypt {
         my @keys;
         if (my $recips = $param{Recipients}) {
             my @recips = ref $recips eq 'ARRAY' ? @$recips : $recips;
-            my $ring = $pgp->pubrings->[0]
-                or return $pgp->error("No public keyrings");
+            my $ring = $pgp->pubrings->[0];
             my %seen;
             my $server;
             my $cfg = $pgp->{cfg};
@@ -480,11 +478,11 @@ sub encrypt {
                 my($lr, @kb) = (length($r));
                 if (($lr == 8 || $lr == 16) && $r !~ /[^\da-fA-F]/) {
                     my $id = pack 'H*', $r;
-                    @kb = $ring->find_keyblock_by_keyid($id);
+                    @kb = $ring->find_keyblock_by_keyid($id) if $ring;
                     @kb = $server->find_keyblock_by_keyid($id)
                         if !@kb && $server;
                 } else {
-                    @kb = $ring->find_keyblock_by_uid($r);
+                    @kb = $ring->find_keyblock_by_uid($r) if $ring;
                     @kb = $server->find_keyblock_by_uid($r)
                         if !@kb && $server;
                 }

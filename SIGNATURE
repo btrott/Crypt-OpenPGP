@@ -1,0 +1,90 @@
+This file contains message digests of all files listed in MANIFEST,
+signed via the Module::Signature module, version 0.20.
+
+To verify the content in this distribution, first make sure you have
+Module::Signature installed, then type:
+
+    % cpansign -v
+
+It would check each file's integrity, as well as the signature's
+validity.  If "==> Signature verified OK! <==" is not displayed,
+the distribution may already have been compromised, and you should
+not run its Makefile.PL or Build.PL.
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+SHA1 17487d821ef6280ba5804e2795ac62f27d109c97 CREDITS
+SHA1 779444fc94416223406e215b040f1d7bdc9f9a36 Changes
+SHA1 85a4b24c43c83a2e95ebcc109b685628912b52f0 MANIFEST
+SHA1 f058c7cd28fd8106149e5ad499a764a273a08e5e Makefile.PL
+SHA1 6537e00c015969d230826f3b61ce56227f7c8fcb README
+SHA1 6ccbae0e6d7d50693f14e3ba42e6bc5ba7ad431e ToDo
+SHA1 2c47a515a0b62ffd9fa56bb572ee7aa56f1bddda bin/pgplet
+SHA1 0099098b121b7678eb3f95367c9ad14f47a68dca inc/ExtUtils/AutoInstall.pm
+SHA1 c613f85b20f9dc66afeb466bba5307b8569e2b67 lib/Crypt/OpenPGP.pm
+SHA1 2c19f35472e0d1237d07552def93ab152957b95e lib/Crypt/OpenPGP/Armour.pm
+SHA1 147680f14457798e90c1d90c0ca89cf7464dd078 lib/Crypt/OpenPGP/Buffer.pm
+SHA1 6511d15b97c9a9c7d288bb2e5053f92e2690dda6 lib/Crypt/OpenPGP/CFB.pm
+SHA1 92bc413428ee79278215b81695f16ddf6834b159 lib/Crypt/OpenPGP/Certificate.pm
+SHA1 d7bf22306e7fe65c71c75752f03f7e055e96a4f6 lib/Crypt/OpenPGP/Cipher.pm
+SHA1 ea61f5d6dad58795b741105cbe0390b737f429e4 lib/Crypt/OpenPGP/Ciphertext.pm
+SHA1 5687525d99442828bd30b60a1ccca73cd1afd638 lib/Crypt/OpenPGP/Compressed.pm
+SHA1 cefa75fde5540354d37ef53fafbd1113316337cd lib/Crypt/OpenPGP/Config.pm
+SHA1 1c50293d06dc510622f4df18b30bad2e1e574f5e lib/Crypt/OpenPGP/Constants.pm
+SHA1 b87924403997825dff850440783bb5552d6a0fa8 lib/Crypt/OpenPGP/Digest.pm
+SHA1 c9b7a4bbcc62b8eb11526e2077452cc7612d7579 lib/Crypt/OpenPGP/ErrorHandler.pm
+SHA1 992fffabcdd83135a1605c845e2138858455a092 lib/Crypt/OpenPGP/Key.pm
+SHA1 8be9469aa238f49a752cbe08677a383aa547312f lib/Crypt/OpenPGP/Key/Public.pm
+SHA1 4453a2a139be7b9f21ff3df5480a20135967324e lib/Crypt/OpenPGP/Key/Public/DSA.pm
+SHA1 4c072004cf7e27060100a7c65d2cdf542ead711a lib/Crypt/OpenPGP/Key/Public/ElGamal.pm
+SHA1 858fc5671828b1b19d3c08da67f1a34d79f69760 lib/Crypt/OpenPGP/Key/Public/RSA.pm
+SHA1 8da7eb6fd055d4471950ce74087b03097d0caa84 lib/Crypt/OpenPGP/Key/Secret.pm
+SHA1 239120e272498673457e7c7243d6abfbd83e2afc lib/Crypt/OpenPGP/Key/Secret/DSA.pm
+SHA1 8b5ef9e603af05688a6bbddc6afe07ed0dc19a0c lib/Crypt/OpenPGP/Key/Secret/ElGamal.pm
+SHA1 79f9419700621acac1e546f1276b5c7e1f8af9a6 lib/Crypt/OpenPGP/Key/Secret/RSA.pm
+SHA1 bdc0f6757fb4665db4033ec30cb5ad7fbded2c11 lib/Crypt/OpenPGP/KeyBlock.pm
+SHA1 d6e677301932bd3a6ee386d97fc1d8bf35d198bb lib/Crypt/OpenPGP/KeyRing.pm
+SHA1 9c3136468067605812f244823cfb77c8f3aa59b8 lib/Crypt/OpenPGP/KeyServer.pm
+SHA1 4492381b402dde0b926674c01c0c17b952c5769d lib/Crypt/OpenPGP/MDC.pm
+SHA1 9fbbd4d59f4a2c49f22bead0f8c3e9cf8ed5c830 lib/Crypt/OpenPGP/Marker.pm
+SHA1 e8344ad1b3859dd51444feeb137ba2779ee1a19a lib/Crypt/OpenPGP/Message.pm
+SHA1 1da3c367f17549779a07f3ce704acb8d2e2885b7 lib/Crypt/OpenPGP/OnePassSig.pm
+SHA1 81de40b299771d4dcd1fad86ad5bccc5881db2f8 lib/Crypt/OpenPGP/PacketFactory.pm
+SHA1 90233d0afed570433374a63fd1a609344dc4eb37 lib/Crypt/OpenPGP/Plaintext.pm
+SHA1 4db9563ed7bce517ccdac49edff5b42fe1782780 lib/Crypt/OpenPGP/S2k.pm
+SHA1 80173fe2c9bcc02f579cf667907c4e22a0f313f4 lib/Crypt/OpenPGP/SKSessionKey.pm
+SHA1 7cca3f3e4da571867f9898d7ebffb7946caa92ed lib/Crypt/OpenPGP/SessionKey.pm
+SHA1 637e391c086ea313a1951c27518dbb24e1034e32 lib/Crypt/OpenPGP/Signature.pm
+SHA1 e6dbb1c2c44a17bd798cabd510485ce3e1cc2f8d lib/Crypt/OpenPGP/Signature/SubPacket.pm
+SHA1 d7d4a5941510438485dfd529f92c66e22abc618a lib/Crypt/OpenPGP/Trust.pm
+SHA1 740e19c2214364951c60f6d2d82a6529a5af052b lib/Crypt/OpenPGP/UserID.pm
+SHA1 9545fa9112c0eca42059301db7b67b2ccf524bb5 lib/Crypt/OpenPGP/Util.pm
+SHA1 c2a755d161bab247a8fde4164b9c5f6960141882 lib/Crypt/OpenPGP/Words.pm
+SHA1 ec303ad6719126955c77a86fcc609143ba7996d2 t/00-compile.t
+SHA1 79ac1fd9a12c2781812c0f0fbf0f6a8d53f04e95 t/01-util.t
+SHA1 2845cf4718b1cdab2f08fa454c8e084675db2543 t/02-buffer.t
+SHA1 bd0fef327e0178a940f2ba2912c3da7eca23c349 t/03-3des.t
+SHA1 f5b42a1431e53157159c4bbebd4d390d5e132a07 t/04-armour.t
+SHA1 ac12d832d77c678c16ee8e40803f28e403185376 t/05-packets.t
+SHA1 3797a7b56ae892fb90248dc6ce5c58bf76a01d1a t/06-cipher.t
+SHA1 e05c25fdef89c48007086b323d566f6903a3a81f t/07-digest.t
+SHA1 62973481aae162ea25805d5b1ab8ab7e032fc2c4 t/08-compress.t
+SHA1 832b4bc242e2d7050f018bde3aa45a4b3c31b1ab t/09-config.t
+SHA1 f15c7f4e5a0d6915c43e5dd64e85186def72ef37 t/10-keyring.t
+SHA1 f0f72a6230597e97172be25d7b3a819c2441c6bd t/11-encrypt.t
+SHA1 d7aea7791414152ed3bfbb792f750216cf32cfd4 t/12-sign.t
+SHA1 01a4fca8a0bbcc56a7d626e004a06df21d6dd231 t/13-keygen.t
+SHA1 480c0626cfdbb15d083ec6e910137cdd39ce341f t/samples/cfg.gnupg
+SHA1 d1d87f12b5f2d1b2e588bb901a533bbb563d8df4 t/samples/cfg.pgp2
+SHA1 063973804fa6cb8ef8fffc16d0702ebc0e072d5b t/samples/gpg/ring.pub
+SHA1 456550f0a76131a5fdbffa7b670fa33a6e5e8076 t/samples/gpg/ring.sec
+SHA1 6885e04cb5aa6a0197e5225a7320dce179f16608 t/samples/message.asc
+SHA1 2918a4a307c10230610ccfed51c56898b17884fd t/test-common.pl
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.0.7 (GNU/Linux)
+
+iD8DBQE99Wm6zGeEk2uv818RAj1wAKC9fxT125bg1yj6GsUii59zsqlazQCfUrcq
+fnIzELeicKJOHFYWHr0VMsk=
+=/Fj/
+-----END PGP SIGNATURE-----

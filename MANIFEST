@@ -3,8 +3,10 @@ Changes
 MANIFEST
 Makefile.PL
 README
+SIGNATURE
 ToDo
 bin/pgplet
+inc/ExtUtils/AutoInstall.pm
 lib/Crypt/OpenPGP.pm
 lib/Crypt/OpenPGP/Armour.pm
 lib/Crypt/OpenPGP/Buffer.pm
