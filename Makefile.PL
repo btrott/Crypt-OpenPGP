@@ -1,4 +1,4 @@
-# $Id: Makefile.PL,v 1.7 2001/07/28 00:58:33 btrott Exp $
+# $Id: Makefile.PL,v 1.8 2001/07/29 17:52:56 btrott Exp $
 
 use ExtUtils::MakeMaker qw( prompt WriteMakefile );
 use strict;
@@ -8,6 +8,9 @@ my %BASE_PREREQS = (
         'MIME::Base64'   => 0,
         'Math::Pari'     => 0,
         'Compress::Zlib' => 0,
+
+        'Crypt::DSA' => 0,
+        'Crypt::RSA' => 0,
 );
 
 my %prereq = %BASE_PREREQS;
@@ -77,6 +80,8 @@ for my $id (split /\s+/, $c) {
     $prereq{ $dgstmod[$id-1]->[1] } = '0';
 }
 
+=pod
+
 print<<MSG;
 
 Crypt::OpenPGP also requires at least one public-key implementation;
@@ -100,6 +105,8 @@ for my $id (split /\s+/, $c) {
     next unless $pkmod[$id-1]->[1];
     $prereq{ $pkmod[$id-1]->[1] } = '0';
 }
+
+=cut
 
 print "\nChecking for required modules\n\n";
 my(%todo, $missing);

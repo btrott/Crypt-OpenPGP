@@ -1,4 +1,4 @@
-# $Id: Plaintext.pm,v 1.6 2001/07/29 05:27:49 btrott Exp $
+# $Id: Plaintext.pm,v 1.7 2001/07/29 17:08:56 btrott Exp $
 
 package Crypt::OpenPGP::Plaintext;
 use strict;
@@ -14,13 +14,14 @@ sub new {
 }
 
 sub data { $_[0]->{data} }
+sub mode { $_[0]->{mode} }
 
 sub init {
     my $pt = shift;
     my %param = @_;
     if (my $data = $param{Data}) {
         $pt->{data} = $data;
-        $pt->{mode} = 'b';
+        $pt->{mode} = $param{Mode} || 'b';
         $pt->{timestamp} = time;
         $pt->{filename} = $param{Filename} || '';
     }
@@ -100,6 +101,13 @@ The name of the file that this data came from, or the name of a file
 where it should be saved upon extraction from the packet (after
 decryption, for example, if this packet is going to be encrypted).
 
+=item * Mode
+
+The mode in which the data is formatted. Valid values are C<t> and
+C<b>, meaning "text" and "binary", respectively.
+
+This argument is optional; I<Mode> defaults to C<b>.
+
 =back
 
 =head2 $pt->save
@@ -113,6 +121,14 @@ Given I<$buffer>, a I<Crypt::OpenPGP::Buffer> object holding (or
 with offset pointing to) a plaintext data packet, returns a new
 I<Crypt::OpenPGP::Ciphertext> object, initialized with the data
 in the buffer.
+
+=head2 $pt->data
+
+Returns the plaintext data.
+
+=head2 $pt->mode
+
+Returns the mode of the packet (either C<t> or C<b>).
 
 =head1 AUTHOR & COPYRIGHTS
 

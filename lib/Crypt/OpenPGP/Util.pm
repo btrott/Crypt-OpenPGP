@@ -1,4 +1,4 @@
-# $Id: Util.pm,v 1.5 2001/07/29 03:30:11 btrott Exp $
+# $Id: Util.pm,v 1.7 2001/07/30 05:37:37 btrott Exp $
 
 package Crypt::OpenPGP::Util;
 use strict;
@@ -7,7 +7,8 @@ use Math::Pari qw( PARI pari2num floor Mod lift );
 
 use vars qw( @EXPORT_OK @ISA );
 use Exporter;
-@EXPORT_OK = qw( bitsize bin2mp mp2bin mod_exp mod_inverse );
+@EXPORT_OK = qw( bitsize bin2mp mp2bin mod_exp mod_inverse
+                 dash_escape dash_unescape canonical_text );
 @ISA = qw( Exporter );
 
 sub bitsize {
@@ -46,6 +47,28 @@ sub mod_inverse {
     my($a, $n) = @_;
     my $m = Mod(1, $n);
     lift($m / $a);
+}
+
+sub dash_escape {
+    my($data) = @_;
+    $data =~ s/^-/- -/mg;
+    $data;
+}
+
+sub dash_unescape {
+    my($data) = @_;
+    $data =~ s/^-\s//mg;
+    $data;
+}
+
+sub canonical_text {
+    my($text) = @_;
+    my @lines = split /\n/, $text, -1;
+    pop @lines if $lines[-1] eq '';
+    for my $l (@lines) {
+        $l =~ s/[ \t\r\n]*$//;
+    }
+    join "\r\n", @lines;
 }
 
 1;
@@ -91,6 +114,19 @@ object.
 Computes the multiplicative inverse of $a mod $n and returns the
 value. The calculations are done using I<Math::Pari>, and the
 return value is a I<Math::Pari> object.
+
+=head2 canonical_text($text)
+
+Takes a piece of text content I<$text> and formats it into PGP canonical
+text, where: 1) all whitespace at the end of lines is stripped, and
+2) all line endings are made up of a carriage return followed by a line
+feed. Returns the canonical form of the text.
+
+=head2 dash_escape($text)
+
+Escapes I<$text> for use in a cleartext signature; the escaping looks
+for any line starting with a dash, and on such lines prepends a dash
+('-') followed by a space (' '). Returns the escaped text.
 
 =head1 AUTHOR & COPYRIGHTS
 

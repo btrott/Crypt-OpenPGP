@@ -1,4 +1,4 @@
-# $Id: Armour.pm,v 1.8 2001/07/28 06:18:31 btrott Exp $
+# $Id: Armour.pm,v 1.9 2001/07/29 17:37:03 btrott Exp $
 
 package Crypt::OpenPGP::Armour;
 use strict;
@@ -46,13 +46,6 @@ sub unarmour {
     {  Data    => $data,
        Headers => \%headers,
        Object  => $obj }
-}
-
-sub _split64 { 
-    my $class = shift;
-    my($data) = @_;
-    $data =~ s!(.{1,64})!$1\n!g;
-    $data;
 }
 
 sub _checksum {

@@ -1,10 +1,10 @@
-# $Id: OpenPGP.pm,v 1.49 2001/07/29 13:47:04 btrott Exp $
+# $Id: OpenPGP.pm,v 1.52 2001/07/30 06:01:37 btrott Exp $
 
 package Crypt::OpenPGP;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.11';
+$VERSION = '0.12';
 
 use Crypt::OpenPGP::Constants qw( DEFAULT_CIPHER );
 use Crypt::OpenPGP::KeyRing;
@@ -96,8 +96,7 @@ sub sign {
     unless ($data = $param{Data}) {
         my $file = $param{Filename} or
             return $pgp->error("Need either 'Data' or 'Filename' to sign");
-        $data = $pgp->_read_files($file) or
-            return $pgp->error($pgp->errstr);
+        $data = $pgp->_read_files($file) or return $pgp->error($pgp->errstr);
     }
     unless ($cert = $param{Key}) {
         my $kid = $param{KeyID} or return $pgp->error("No KeyID specified");
@@ -112,20 +111,26 @@ sub sign {
         $cert->unlock($pass) or
             return $pgp->error("Secret key unlock failed: " . $cert->errstr);
     }
-    my $pt = Crypt::OpenPGP::Plaintext->new( Data => $data,
-                      $param{Filename} ? (Filename => $param{Filename}) : () );
-    my %hash_args;
+    my @ptarg = ( Data => $data );
+    push @ptarg, ( Filename => $param{Filename} ) if $param{Filename};
+    push @ptarg, ( Mode => 't' ) if $param{Clearsign};
+    my $pt = Crypt::OpenPGP::Plaintext->new(@ptarg);
+    my @sigarg;
     if (my $hash_alg = $param{Digest}) {
         my $dgst = Crypt::OpenPGP::Digest->new($hash_alg) or
             return $pgp->error( Crypt::OpenPGP::Digest->errstr );
-        %hash_args = ( Digest => $dgst->alg_id );
+        @sigarg = ( Digest => $dgst->alg_id );
     }
+    push @sigarg, (Type => 0x01) if $param{Clearsign};
     my $sig = Crypt::OpenPGP::Signature->new(
                           Data => $pt,
                           Key  => $cert,
                           Version => $param{Version},
-                          %hash_args,
+                          @sigarg,
                  );
+    if ($param{Clearsign}) {
+        $param{Armour} = $param{Detach} = 1;
+    }
     my $sig_data = Crypt::OpenPGP::PacketFactory->save($sig,
         $param{Detach} ? () : ($pt));
     if ($param{Armour}) {
@@ -134,6 +139,17 @@ sub sign {
                           Data => $sig_data,
                           Object => ($param{Detach} ? 'SIGNATURE' : 'MESSAGE'),
                  ) or return $pgp->error( Crypt::OpenPGP::Armour->errstr );
+    }
+    if ($param{Clearsign}) {
+        require Crypt::OpenPGP::Util;
+        my $hash = Crypt::OpenPGP::Digest->alg($sig->{hash_alg});
+        my $data = Crypt::OpenPGP::Util::dash_escape($pt->data);
+        $data .= "\n" unless $data =~ /\n$/;
+        $sig_data = "-----BEGIN PGP SIGNED MESSAGE-----\n" .
+                    ($hash eq 'MD5' ? '' : "Hash: $hash\n") .
+                    "\n" .
+                    $data .
+                    $sig_data;
     }
     $sig_data;
 }
@@ -161,10 +177,11 @@ sub verify {
     if (ref($pieces[0]) eq 'Crypt::OpenPGP::Compressed') {
         $data = $pieces[0]->decompress or
             return $pgp->error("Decompression error: " . $pieces[0]->errstr);
-        $msg->read( Data => $data) or
+        my $msg2 = Crypt::OpenPGP::Message->new;
+        $msg2->read( Data => $data) or
             return $pgp->error("Reading decompressed data failed: " .
-                $msg->errstr);
-        @pieces = @{ $msg->{pieces} };
+                $msg2->errstr);
+        @pieces = @{ $msg2->{pieces} };
     }
     if (ref($pieces[0]) eq 'Crypt::OpenPGP::OnePassSig') {
         ($data, $sig) = @pieces[1,2];
@@ -728,6 +745,21 @@ If true, the data returned from I<sign> will be ASCII-armoured. This
 can be useful when you need to send data through email, for example.
 
 By default the returned signature is not armoured.
+
+=item * Clearsign
+
+If true, the signature created on the data is a clear-text signature.
+This form of signature displays the clear text of the signed data,
+followed by the ASCII-armoured signature on that data. Such a format
+is desirable when sending signed messages to groups of users who may
+or may not have PGP, because it allows the text of the message to be
+readable without special software.
+
+When I<Clearsign> is set to true, I<Armour> and I<Detach> are
+automatically turned on, because the signature created is a detached,
+armoured signature.
+
+By default I<Clearsign> is false.
 
 =item * KeyID
 

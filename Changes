@@ -1,6 +1,15 @@
-$Id: Changes,v 1.32 2001/07/29 13:58:56 btrott Exp $
+$Id: Changes,v 1.36 2001/07/30 05:38:46 btrott Exp $
 
 Revision history for Crypt::OpenPGP
+
+0.12  2001.07.29
+    - Added support for clear-text signatures, both creating (Clearsign
+      param to 'sign') and verifying (transparent support).
+    - For the time being Makefile.PL will not give a choice of
+      public key algorithms; you will have to install support for
+      both DSA and RSA. This will last until the test suite has been
+      reworked to auto-detect which module is installed and run the
+      tests with the appropriate key types.
 
 0.11  2001.07.29
     - Added support for symmetric-key encrypted session key packets,

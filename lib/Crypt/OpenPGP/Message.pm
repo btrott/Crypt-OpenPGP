@@ -1,4 +1,4 @@
-# $Id: Message.pm,v 1.3 2001/07/21 06:54:27 btrott Exp $
+# $Id: Message.pm,v 1.5 2001/07/30 05:36:54 btrott Exp $
 
 package Crypt::OpenPGP::Message;
 use strict;
@@ -8,7 +8,7 @@ use Crypt::OpenPGP::PacketFactory;
 use Crypt::OpenPGP::ErrorHandler;
 use base qw( Crypt::OpenPGP::ErrorHandler );
 
-sub new { bless { }, $_[0] }
+sub new { bless { pieces => [ ] }, $_[0] }
 
 sub read {
     my $msg = shift;
@@ -23,6 +23,20 @@ sub read {
         { local $/; $data = <FH> }
         close FH;
     }
+    my $pt;
+    if ($data =~ /-----BEGIN PGP SIGNED MESSAGE/) {
+        require Crypt::OpenPGP::Armour;
+        require Crypt::OpenPGP::Util;
+        require Crypt::OpenPGP::Plaintext;
+        my($head, $text, $sig) = $data =~
+            m!-----BEGIN [^\n\-]+-----(.*?\n\n)?(.+)(-----BEGIN.*?END.*?-----)!s;
+        $pt = Crypt::OpenPGP::Plaintext->new(
+                              Data => Crypt::OpenPGP::Util::dash_unescape($text),
+                              Mode => 't',
+                    );
+        $data = $sig;
+    }
+
     if ($data =~ /-----BEGIN/) {
         require Crypt::OpenPGP::Armour;
         my $rec = Crypt::OpenPGP::Armour->unarmour($data) or
@@ -33,13 +47,13 @@ sub read {
     my $buf = Crypt::OpenPGP::Buffer->new;
     $buf->append($data);
     $msg->restore($buf);
+    push @{ $msg->{pieces} }, $pt;
     1;
 }
 
 sub restore {
     my $msg = shift;
     my($buf) = @_;
-    $msg->{pieces} = [];
     while (my $packet = Crypt::OpenPGP::PacketFactory->parse($buf)) {
         push @{ $msg->{pieces} }, $packet;
     }

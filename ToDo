@@ -1,10 +1,12 @@
-$Id: ToDo,v 1.18 2001/07/29 14:08:09 btrott Exp $
+$Id: ToDo,v 1.20 2001/07/30 06:04:48 btrott Exp $
 
 Crypt::OpenPGP todo
 --------
 xx * Crypt::OpenPGP main USAGE docs
 xx * docs (for other classes)
 * support for CAST5, ElGamal signing
+xx * clear text signatures; need to make text into canonical text for
+     signing
 xx * more support for looking up keys in keyring (eg. look up userid, etc.)
 * caching in find_keyblock. let caller pass in 'marker' code-ref that, given
   a packet, returns a unique 'marker' to point to that keyblock. eg. lookup
@@ -36,7 +38,8 @@ xx * generate fingerprint on cert while reading in (in 'parse'); that way we
      don't have to reserialize
 * Crypt::OpenPGP::Plaintext::encrypt should encrypt data and return a
   Crypt::OpenPGP::Ciphertext packet
-* add tests for more versions of PGP, more pkalgs
+* test suite: tests for: compressed signatures, compressed encrypted data
+  packets, more versions of PGP, more pkalgs, subpackets
 * improve subpacket system: constants for types, better integration into
   signatures, etc.
 xx * better installation: determine prereqs based on answers to prompts

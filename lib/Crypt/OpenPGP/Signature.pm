@@ -1,4 +1,4 @@
-# $Id: Signature.pm,v 1.12 2001/07/29 07:01:31 btrott Exp $
+# $Id: Signature.pm,v 1.13 2001/07/29 17:13:03 btrott Exp $
 
 package Crypt::OpenPGP::Signature;
 use strict;
@@ -236,7 +236,14 @@ sub hash_data {
     }
     elsif ($type eq 'Crypt::OpenPGP::Plaintext') {
         my $pt = shift;
-        $buf->put_bytes($pt->data);
+        my $data = $pt->data;
+        if ($pt->mode eq 't') {
+            require Crypt::OpenPGP::Util;
+            $buf->put_bytes(Crypt::OpenPGP::Util::canonical_text($data));
+        }
+        else {
+            $buf->put_bytes($data);
+        }
     }
 
     $buf->put_bytes($sig->sig_trailer);

@@ -1,10 +1,10 @@
-# $Id: 12-sign.t,v 1.3 2001/07/24 20:39:46 btrott Exp $
+# $Id: 12-sign.t,v 1.4 2001/07/30 05:52:58 btrott Exp $
 
 use Test;
 use Crypt::OpenPGP;
 use strict;
 
-BEGIN { plan tests => 12 }
+BEGIN { plan tests => 15 }
 
 use vars qw( $SAMPLES );
 unshift @INC, 't/';
@@ -75,6 +75,20 @@ $sig = $pgp->sign(
             );
 ok($sig);
 ok($sig !~ /^-----BEGIN PGP MESSAGE/);
+
+$signer = $pgp->verify(
+               Signature => $sig,
+            );
+ok($signer, $uid);
+
+$sig = $pgp->sign(
+               KeyID      => $key_id,
+               Data       => $text,
+               Passphrase => $passphrase,
+               Clearsign  => 1,
+            );
+ok($sig);
+ok($sig =~ /^-----BEGIN PGP SIGNED MESSAGE/);
 
 $signer = $pgp->verify(
                Signature => $sig,
