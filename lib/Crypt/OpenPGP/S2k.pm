@@ -1,4 +1,4 @@
-# $Id: S2k.pm,v 1.4 2001/07/26 00:49:02 btrott Exp $
+# $Id: S2k.pm,v 1.5 2001/07/27 19:39:32 btrott Exp $
 
 package Crypt::OpenPGP::S2k;
 use strict;
@@ -33,15 +33,15 @@ sub new {
 sub init { $_[0] }
 sub generate {
     my $s2k = shift;
-    my($passphrase, $key_len) = @_;
+    my($passphrase, $keysize) = @_;
     my($material, $pass) = ('', 0);
     my $hash = $s2k->{hash};
-    while (length($material) < $key_len) {
+    while (length($material) < $keysize) {
         my $pad = '' . chr(0) x $pass;
         $material .= $s2k->s2k($passphrase, $pad);
         $pass++;
     }
-    substr($material, 0, $key_len);
+    substr($material, 0, $keysize);
 }
 sub set_hash {
     my $s2k = shift;

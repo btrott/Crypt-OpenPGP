@@ -1,16 +1,21 @@
-# $Id: Cipher.pm,v 1.6 2001/07/21 06:54:27 btrott Exp $
+# $Id: Cipher.pm,v 1.10 2001/07/27 22:23:00 btrott Exp $
 
 package Crypt::OpenPGP::Cipher;
 use strict;
 
 use Crypt::OpenPGP::CFB;
+use Crypt::OpenPGP::ErrorHandler;
+use base qw( Crypt::OpenPGP::ErrorHandler );
 
 use vars qw( %ALG %ALG_BY_NAME );
 %ALG = (
     1 => 'IDEA',
     2 => 'DES3',
-    3 => 'CAST5',
     4 => 'Blowfish',
+    7 => 'Rijndael',
+    8 => 'Rijndael192',
+    9 => 'Rijndael256',
+    10 => 'Twofish',
 );
 %ALG_BY_NAME = map { $ALG{$_} => $_ } keys %ALG;
 
@@ -18,6 +23,8 @@ sub new {
     my $class = shift;
     my $alg = shift;
     $alg = $ALG{$alg} || $alg;
+    return $class->error("Unsupported cipher algorithm '$alg'")
+        unless $alg =~ /^\D/;
     my $pkg = join '::', $class, $alg;
     my $ciph = bless { __alg => $alg,
                        __alg_id => $ALG_BY_NAME{$alg} }, $pkg;
@@ -30,7 +37,7 @@ sub init {
     if ($key) {
         my $class = $ciph->crypt_class;
         eval "use $class;";
-        my $c = $class->new(substr $key, 0, $ciph->key_len);
+        my $c = $class->new(substr($key, 0, $ciph->keysize));
         $ciph->{cipher} = Crypt::OpenPGP::CFB->new($c, $iv);
     }
     $ciph;
@@ -55,20 +62,55 @@ use base qw( Crypt::OpenPGP::Cipher );
 *Crypt::IDEA::decrypt = \&IDEA::decrypt;
 
 sub crypt_class { 'Crypt::IDEA' }
-sub key_len { 16 }
+sub keysize { 16 }
+sub blocksize { 8 }
 
 package Crypt::OpenPGP::Cipher::Blowfish;
 use strict;
 use base qw( Crypt::OpenPGP::Cipher );
 
 sub crypt_class { 'Crypt::Blowfish' }
-sub key_len { 16 }
+sub keysize { 16 }
+sub blocksize { 8 }
 
 package Crypt::OpenPGP::Cipher::DES3;
 use strict;
 use base qw( Crypt::OpenPGP::Cipher );
 
 sub crypt_class { 'Crypt::DES_EDE3' }
-sub key_len { 24 }
+sub keysize { 24 }
+sub blocksize { 8 }
+
+package Crypt::OpenPGP::Cipher::Twofish;
+use strict;
+use base qw( Crypt::OpenPGP::Cipher );
+
+sub crypt_class { 'Crypt::Twofish' }
+sub keysize { 32 }
+sub blocksize { 16 }
+
+package Crypt::OpenPGP::Cipher::Rijndael;
+use strict;
+use base qw( Crypt::OpenPGP::Cipher );
+
+sub crypt_class { 'Crypt::Rijndael' }
+sub keysize { 16 }
+sub blocksize { 16 }
+
+package Crypt::OpenPGP::Cipher::Rijndael192;
+use strict;
+use base qw( Crypt::OpenPGP::Cipher );
+
+sub crypt_class { 'Crypt::Rijndael' }
+sub keysize { 24 }
+sub blocksize { 16 }
+
+package Crypt::OpenPGP::Cipher::Rijndael256;
+use strict;
+use base qw( Crypt::OpenPGP::Cipher );
+
+sub crypt_class { 'Crypt::Rijndael' }
+sub keysize { 32 }
+sub blocksize { 16 }
 
 1;

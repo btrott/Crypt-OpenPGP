@@ -1,12 +1,13 @@
-# $Id: Makefile.PL,v 1.2 2001/07/24 04:19:32 btrott Exp $
+# $Id: Makefile.PL,v 1.7 2001/07/28 00:58:33 btrott Exp $
 
 use ExtUtils::MakeMaker qw( prompt WriteMakefile );
 use strict;
 
 my %BASE_PREREQS = (
-        'Data::Buffer' => '0.03',
-        'MIME::Base64' => 0,
-        'Math::Pari'   => 0,
+        'Data::Buffer'   => '0.03',
+        'MIME::Base64'   => 0,
+        'Math::Pari'     => 0,
+        'Compress::Zlib' => 0,
 );
 
 my %prereq = %BASE_PREREQS;
@@ -15,6 +16,14 @@ my @cryptmod = (
     [ '3DES' => 'Crypt::DES' ],
     [ 'IDEA' => 'Crypt::IDEA' ],
     [ 'Blowfish' => 'Crypt::Blowfish' ],
+    [ 'Twofish' => 'Crypt::Twofish', '2.00' ],
+    [ 'Rijndael' => 'Crypt::Rijndael' ],
+);
+
+my @dgstmod = (
+    [ 'MD5' => 'Digest::MD5' ],
+    [ 'SHA-1' => 'Digest::SHA1' ],
+    [ 'RIPE-MD/160' => 'Crypt::RIPEMD160' ],
 );
 
 my @pkmod = (
@@ -44,7 +53,28 @@ print "\n";
 
 for my $id (split /\s+/, $c) {
     next unless $cryptmod[$id-1]->[1];
-    $prereq{ $cryptmod[$id-1]->[1] } = '0';
+    $prereq{ $cryptmod[$id-1]->[1] } = $cryptmod[$id-1]->[2] || '0';
+}
+
+print<<MSG;
+Each of the Crypt::OpenPGP digest algorithms depends on a module
+from the CPAN. You may already have the necessary module(s)
+installed, in which you don't need to bother with this step.
+Otherwise you'll need to select a digest to use with Crypt::OpenPGP.
+Please choose at least one from the following list (SHA-1 is the
+default).
+
+MSG
+my $i = 1;
+for my $ciph (@dgstmod) {
+    printf "    [%d] %s\n", $i++, $ciph->[0];
+}
+my $c = prompt("\nEnter your choices, separated by spaces:", 2);
+print "\n";
+
+for my $id (split /\s+/, $c) {
+    next unless $dgstmod[$id-1]->[1];
+    $prereq{ $dgstmod[$id-1]->[1] } = '0';
 }
 
 print<<MSG;

@@ -1,4 +1,4 @@
-# $Id: SessionKey.pm,v 1.9 2001/07/26 23:14:25 btrott Exp $
+# $Id: SessionKey.pm,v 1.10 2001/07/27 19:39:33 btrott Exp $
 
 package Crypt::OpenPGP::SessionKey;
 use strict;
@@ -24,8 +24,8 @@ sub init {
     $key->{version} = 3;
     if ((my $cert = $param{Key}) && (my $sym_key = $param{SymKey})) {
         my $alg = $param{Cipher} || DEFAULT_CIPHER;
-        my $key_len = Crypt::OpenPGP::Cipher->new($alg)->key_len;
-        $sym_key = substr $sym_key, 0, $key_len;
+        my $keysize = Crypt::OpenPGP::Cipher->new($alg)->keysize;
+        $sym_key = substr $sym_key, 0, $keysize;
         my $pk = $cert->key->public_key;
         my $enc = $key->_encode($sym_key, $alg, $pk->bytesize) or
             return (ref $key)->error("Encoding symkey failed: " . $key->errstr);

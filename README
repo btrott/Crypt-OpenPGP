@@ -1,4 +1,4 @@
-$Id: README,v 1.2 2001/07/24 04:21:32 btrott Exp $
+$Id: README,v 1.5 2001/07/28 00:58:33 btrott Exp $
 
 This is Crypt::OpenPGP. It provides a pure-Perl implementation of the
 OpenPGP standard, including support for all versions of PGP and
@@ -11,6 +11,7 @@ Crypt::OpenPGP requires the following Perl modules:
     * MIME::Base64
     * Data::Buffer
     * Math::Pari
+    * Compress::Zlib
 
 Depending on which symmetric ciphers you use, you will require
 at least one of the following modules:
@@ -18,8 +19,17 @@ at least one of the following modules:
     * Crypt::DES (for 3DES)
     * Crypt::IDEA (for IDEA)
     * Crypt::Blowfish (for Blowfish)
+    * Crypt::Twofish (for Twofish)
+    * Crypt::Rijndael (for Rijndael)
 
-And depending on which public key algorithms you use, you will
+Depending on which digest algorithms you use, you will require at
+least one of the following modules:
+
+    * Digest::MD5 (for MD5)
+    * Digest::SHA1 (for SHA-1)
+    * Crypt::RIPEMD160 (for RIPE-MD/160)
+
+Depending on which public key algorithms you use, you will
 require at least one of the following modules:
 
     * Crypt::RSA (for RSA encryption/decryption and signatures)
@@ -36,8 +46,8 @@ set up, you should just be able to do
 
     % perl -MCPAN -e 'install Crypt::OpenPGP'
 
-Answer the questions as to which encodings you prefer to use,
-and you'll be on your way.
+Answer the questions as to which ciphers/publickey algorithms you prefer
+to use, and you'll be on your way.
 
 If you don't like that, you can download the distribution; the
 latest version on CPAN can be found in

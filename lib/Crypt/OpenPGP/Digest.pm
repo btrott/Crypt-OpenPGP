@@ -1,12 +1,16 @@
-# $Id: Digest.pm,v 1.3 2001/07/23 07:29:02 btrott Exp $
+# $Id: Digest.pm,v 1.4 2001/07/27 20:47:31 btrott Exp $
 
 package Crypt::OpenPGP::Digest;
 use strict;
+
+use Crypt::OpenPGP::ErrorHandler;
+use base qw( Crypt::OpenPGP::ErrorHandler );
 
 use vars qw( %ALG %ALG_BY_NAME );
 %ALG = (
     1 => 'MD5',
     2 => 'SHA1',
+    3 => 'RIPEMD160',
 );
 %ALG_BY_NAME = map { $ALG{$_} => $_ } keys %ALG;
 
@@ -14,6 +18,8 @@ sub new {
     my $class = shift;
     my $alg = shift;
     $alg = $ALG{$alg} || $alg;
+    return $class->error("Unsupported digest algorithm '$alg'")
+        unless $alg =~ /^\D/;
     my $pkg = join '::', $class, $alg;
     my $dig = bless { __alg => $alg,
                       __alg_id => $ALG_BY_NAME{$alg} }, $pkg;
@@ -52,6 +58,17 @@ sub init {
     my $dig = shift;
     require Digest::SHA1;
     $dig->{md} = \&Digest::SHA1::sha1;
+    $dig;
+}
+
+package Crypt::OpenPGP::Digest::RIPEMD160;
+use strict;
+use base qw( Crypt::OpenPGP::Digest );
+
+sub init {
+    my $dig = shift;
+    require Crypt::RIPEMD160;
+    $dig->{md} = sub { Crypt::RIPEMD160->hash($_[0]) };
     $dig;
 }
 

@@ -1,10 +1,10 @@
-# $Id: OpenPGP.pm,v 1.37 2001/07/27 08:01:51 btrott Exp $
+# $Id: OpenPGP.pm,v 1.43 2001/07/27 22:16:58 btrott Exp $
 
 package Crypt::OpenPGP;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.09';
+$VERSION = '0.10';
 
 use Crypt::OpenPGP::Constants qw( DEFAULT_CIPHER );
 use Crypt::OpenPGP::KeyRing;
@@ -15,26 +15,45 @@ use Crypt::OpenPGP::PacketFactory;
 use Crypt::OpenPGP::ErrorHandler;
 use base qw( Crypt::OpenPGP::ErrorHandler );
 
-use vars qw( %DEFAULTS $env );
+use vars qw( %DEFAULTS %COMPAT );
 
-$env = sub { 
-    my $dir = shift; my @paths; 
-    if (exists $ENV{$dir}) { for (@_) { push @paths, "$ENV{$dir}/$_" } } 
-    return @paths ? @paths : "";
-};
+{
+    my $env = sub {
+        my $dir = shift; my @paths;
+        if (exists $ENV{$dir}) { for (@_) { push @paths, "$ENV{$dir}/$_" } }
+        return @paths ? @paths : "";
+    };
 
-%DEFAULTS = (
-    PubRing => [ $env->('PGPPATH','pubring.pgp', 'pubring.pkr'),
-                 $env->('HOME', '.pgp/pubring.pgp', '.pgp/pubring.pkr'),
-                 $env->('GNUPGHOME', 'pubring.gpg'),
-                 $env->('HOME', '.gnupg/pubring.gpg'),
-               ],
-        
-    SecRing => [ $env->('PGPPATH','secring.pgp', 'secring.skr'),
-                 $env->('HOME', '.pgp/secring.pgp', '.pgp/secring.skr'),
-                 $env->('GNUPGHOME', 'secring.gpg'),
-                 $env->('HOME', '.gnupg/secring.gpg'),
-               ],
+    %DEFAULTS = (
+        PubRing => [ $env->('PGPPATH','pubring.pgp', 'pubring.pkr'),
+                     $env->('HOME', '.pgp/pubring.pgp', '.pgp/pubring.pkr'),
+                     $env->('GNUPGHOME', 'pubring.gpg'),
+                     $env->('HOME', '.gnupg/pubring.gpg'),
+                   ],
+
+        SecRing => [ $env->('PGPPATH','secring.pgp', 'secring.skr'),
+                     $env->('HOME', '.pgp/secring.pgp', '.pgp/secring.skr'),
+                     $env->('GNUPGHOME', 'secring.gpg'),
+                     $env->('HOME', '.gnupg/secring.gpg'),
+                   ],
+    );
+}
+
+%COMPAT = (
+    PGP2 => {
+              'sign' => { Digest => 'MD5', Version => 3 },
+              'encrypt' => { Cipher => 'IDEA', Compress => 'ZIP' },
+    },
+
+    PGP5 => {
+              'sign' => { Digest => 'SHA1', Version => 3 },
+              'encrypt' => { Cipher => '3DES', Compress => 'ZIP' },
+    },
+
+    GnuPG => {
+              'sign' => { Digest => 'RIPEMD160', Version => 4 },
+              'encrypt' => { Cipher => 'Rijndael', Compress => 'Zlib' },
+    },
 );
 
 sub version_string { __PACKAGE__ . ' ' . $VERSION }
@@ -64,6 +83,8 @@ sub init {
 sub sign {
     my $pgp = shift;
     my %param = @_;
+    $pgp->_merge_compat(\%param, 'sign') or
+        return $pgp->error( $pgp->errstr );
     my($cert, $data);
     require Crypt::OpenPGP::Signature;
     unless ($data = $param{Data}) {
@@ -87,10 +108,17 @@ sub sign {
     }
     my $pt = Crypt::OpenPGP::Plaintext->new( Data => $data,
                       $param{Filename} ? (Filename => $param{Filename}) : () );
+    my %hash_args;
+    if (my $hash_alg = $param{Digest}) {
+        my $dgst = Crypt::OpenPGP::Digest->new($hash_alg) or
+            return $pgp->error( Crypt::OpenPGP::Digest->errstr );
+        %hash_args = ( Digest => $dgst->alg_id );
+    }
     my $sig = Crypt::OpenPGP::Signature->new(
                           Data => $pt,
                           Key  => $cert,
-                          Version => $param{Version}
+                          Version => $param{Version},
+                          %hash_args,
                  );
     my $sig_data = Crypt::OpenPGP::PacketFactory->save($sig,
         $param{Detach} ? () : ($pt));
@@ -158,7 +186,8 @@ sub verify {
     my($kb, $cert) = $ring->find_keyblock_by_keyid($key_id);
     return $pgp->error("Could not find public key with KeyID " .
         unpack('H*', $key_id)) unless $kb && $cert;
-    my $dgst = $sig->hash_data($data);
+    my $dgst = $sig->hash_data($data) or
+        return $pgp->error( $sig->errstr );
     $cert->key->public_key->verify($sig, $dgst) ?
         ($kb->primary_uid || 1) : 0;
 }
@@ -166,6 +195,8 @@ sub verify {
 sub encrypt {
     my $pgp = shift;
     my %param = @_;
+    $pgp->_merge_compat(\%param, 'encrypt') or
+        return $pgp->error( $pgp->errstr );
     my($data, $cert);
     require Crypt::OpenPGP::Cipher;
     require Crypt::OpenPGP::Ciphertext;
@@ -178,10 +209,11 @@ sub encrypt {
     my $pt = Crypt::OpenPGP::Plaintext->new( Data => $data,
                       $param{Filename} ? (Filename => $param{Filename}) : () );
     my $ptdata = Crypt::OpenPGP::PacketFactory->save($pt);
-    if ($param{Compress}) {
+    if (my $alg = $param{Compress}) {
         require Crypt::OpenPGP::Compressed;
-        my $cdata = Crypt::OpenPGP::Compressed->new( Data => $ptdata ) or
-            return $pgp->error("Compression error: " .
+        $alg = Crypt::OpenPGP::Compressed->alg_id($alg);
+        my $cdata = Crypt::OpenPGP::Compressed->new( Data => $ptdata,
+            Alg => $alg ) or return $pgp->error("Compression error: " .
                 Crypt::OpenPGP::Compressed->errstr);
         $ptdata = Crypt::OpenPGP::PacketFactory->save($cdata);
     }
@@ -269,21 +301,6 @@ sub decrypt {
     $pt->data;
 }
 
-sub _read_files {
-    my $pgp = shift;
-    return $pgp->error("No files specified") unless @_;
-    my @files = @_;
-    my $data = '';
-    for my $file (@files) {
-        $file ||= '';
-        local *FH;
-        open FH, $file or return $pgp->error("Error opening $file: $!");
-        { local $/; $data .= <FH> }
-        close FH or warn "Warning: Got error closing $file: $!";
-    }
-    $data;
-}
-
 sub keygen {
     my $pgp = shift;
     my %param = @_;
@@ -334,7 +351,35 @@ sub keygen {
     ($kb_pub, $kb_sec);
 }
 
+sub _read_files {
+    my $pgp = shift;
+    return $pgp->error("No files specified") unless @_;
+    my @files = @_;
+    my $data = '';
+    for my $file (@files) {
+        $file ||= '';
+        local *FH;
+        open FH, $file or return $pgp->error("Error opening $file: $!");
+        { local $/; $data .= <FH> }
+        close FH or warn "Warning: Got error closing $file: $!";
+    }
+    $data;
+}
+
+sub _merge_compat {
+    my $pgp = shift;
+    my($param, $meth) = @_;
+    my $compat = $param->{Compat} or return 1;
+    my $ref = $COMPAT{$compat}{$meth} or
+        return $pgp->error("No settings for Compat class '$compat'");
+    for my $arg (keys %$ref) {
+        $param->{$arg} = $ref->{$arg} unless exists $param->{$arg};
+    }
+    1;
+}
+
 1;
+
 __END__
 
 =head1 NAME
@@ -370,12 +415,13 @@ Crypt::OpenPGP - Pure-Perl OpenPGP implementation
 
 =head1 DESCRIPTION
 
-I<Crypt::OpenPGP> is a pure-Perl implementation of the OpenPGP standard;
-its intention is compatibility with all other implementations of PGP
-that support the standard.
+I<Crypt::OpenPGP> is a pure-Perl implementation of the OpenPGP
+standard[1]. In addition to support for the standard itself,
+I<Crypt::OpenPGP> claims compatibility with many other PGP implementations,
+both those that support the standard and those that preceded it.
 
 I<Crypt::OpenPGP> provides signing/verification, encryption/decryption,
-keyring management, and keypair generation; in short it should provide
+keyring management, and key-pair generation; in short it should provide
 you with everything you need to PGP-enable yourself. Alternatively it
 can be used as part of a larger system; for example, perhaps you have
 a web-form-to-email generator written in Perl, and you'd like to encrypt
@@ -384,9 +430,70 @@ I<Crypt::OpenPGP> can be plugged into such a scenario, given your public
 key, and told to encrypt all messages; they will then be readable only
 by you.
 
-This module currently supports C<RSA> and C<DSA> for signing/verification,
+This module currently supports C<RSA> and C<DSA> for digital signatures,
 and C<RSA> and C<ElGamal> for encryption/decryption. It supports the
-symmetric ciphers C<3DES>, C<Blowfish>, and C<IDEA>.
+symmetric ciphers C<3DES>, C<Blowfish>, C<IDEA>, C<Twofish>, and
+C<Rijndael> (C<AES>). C<Rijndael> is supported for key sizes of C<128>,
+C<192>, and C<256> bits. I<Crypt::OpenPGP> supports the digest algorithms
+C<MD5>, C<SHA-1>, and C<RIPE-MD/160>. And it supports C<ZIP> and C<Zlib>
+compression.
+
+=head1 COMPATIBILITY
+
+One of the highest priorities for I<Crypt::OpenPGP> is compatibility with
+other PGP implementations, including PGP implementations that existed
+before the OpenPGP standard.
+
+As a means towards that end, some of the high-level I<Crypt::OpenPGP>
+methods can be used in compatibility mode; given an argument I<Compat>
+and a PGP implementation with which they should be compatible, these
+method will do their best to choose ciphers, digest algorithms, etc. that
+are compatible with that implementation. For example, PGP2 only supports
+C<IDEA> encryption, C<MD5> digests, and version 3 signature formats; if
+you tell I<Crypt::OpenPGP> that it must be compatible with PGP2, it will
+only use these algorithms/formats when encrypting and signing data.
+
+To use this feature, supply either I<sign> or I<encrypt> with the
+I<Compat> parameter, giving it one of the values from the list below.
+For example:
+
+    my $ct = $pgp->encrypt(
+                  Compat   => 'PGP2',
+                  Filename => 'foo.pl',
+                  KeyID    => $key_id,
+             );
+
+Because I<PGP2> was specified, the data will automatically be encrypted
+using the C<IDEA> cipher, and will be compressed using C<ZIP>.
+
+Here is a list of the current compatibility sets and the algorithms and
+formats they support.
+
+=over 4
+
+=item * PGP2
+
+Encryption: symmetric cipher = C<IDEA>, compression = C<ZIP>
+
+Signing: digest = C<MD5>, packet format = version 3
+
+=item * PGP5
+
+Encryption: symmetric cipher = C<3DES>, compression = C<ZIP>
+
+Signing: digest = C<SHA-1>, packet format = version 3
+
+=item * GnuPG
+
+Encryption: symmetric cipher = C<Rijndael>, compression = C<Zlib>
+
+Signing: digest = C<RIPE-MD/160>, packet format = version 4
+
+=back
+
+If the compatibility setting is unspecified (that is, if no I<Compat>
+argument is supplied), the settings (ciphers, digests, etc.) fall
+back to their default settings.
 
 =head1 USAGE
 
@@ -431,6 +538,10 @@ I<%args> can contain:
 
 =over 4
 
+=item * Compat
+
+Specifies the PGP compatibility setting. See I<COMPATIBILITY>, above.
+
 =item * Data
 
 The plaintext to be encrypted. This should be a simple scalar containing
@@ -459,16 +570,20 @@ This argument is mandatory.
 =item * Cipher
 
 The name of a symmetric cipher with which the plaintext will be
-encrypted. Valid arguments are C<DES3>, C<Blowfish>, and C<IDEA>.
+encrypted. Valid arguments are C<DES3>, C<Blowfish>, C<IDEA>,
+C<Twofish>, C<Rijndael>, C<Rijndael192>, and C<Rijndael256> (the last
+two are C<Rijndael> with key sizes of 192 and 256 bits, respectively).
 
 This argument is optional; I<Crypt::OpenPGP> currently defaults to
 C<DES3>, but this could change in the future.
 
 =item * Compress
 
-If true, the plaintext will be compressed before it is encrypted.
+The name of a compression algorithm with which the plaintext will be
+compressed before it is encrypted. Valid values are C<ZIP> and
+C<Zlib>.
 
-By default I<Compress> is 0, so the text is not compressed.
+By default text is not compressed.
 
 =item * Armour
 
@@ -528,6 +643,10 @@ I<%args> can contain:
 
 =over 4
 
+=item * Compat
+
+Specifies the PGP compatibility setting. See I<COMPATIBILITY>, above.
+
 =item * Data
 
 The text to be signed. This should be a simple scalar containing an
@@ -573,6 +692,14 @@ This argument is mandatory.
 The passphrase to unlock your secret key.
 
 This argument is mandatory if your secret key is protected.
+
+=item * Digest
+
+The digest algorithm to use when creating the signature; the data to be
+signed is hashed by a message digest algorithm, then signed. Possible
+values are C<MD5>, C<SHA1>, and C<RIPEMD160>.
+
+This argument is optional; by default I<SHA1> will be used.
 
 =item * Version
 
@@ -726,5 +853,13 @@ it under the same terms as Perl itself.
 
 Except where otherwise noted, Crypt::OpenPGP is Copyright 2001 Benjamin
 Trott, ben@rhumba.pair.com. All rights reserved.
+
+=head1 REFERENCES
+
+=over 4
+
+=item 1 RFC2440 - OpenPGP Message Format (1998). http://www.faqs.org/rfcs/rfc2440.html
+
+=back 
 
 =cut

@@ -1,10 +1,14 @@
-$Id: ToDo,v 1.15 2001/07/27 05:51:08 btrott Exp $
+$Id: ToDo,v 1.16 2001/07/27 16:46:03 btrott Exp $
 
 Crypt::OpenPGP todo
 --------
 xx * Crypt::OpenPGP main USAGE docs
 * docs (for other classes)
 * support for CAST5, ElGamal signing
+* compatibility param to encrypt and sign (and keygen, maybe), eg.
+  Compat => 'PGP2' turns on Version => 3 and Cipher => 'IDEA'
+* smart detection and description of arbitrary files, eg. pass in some
+  data and give back 'RSA signed message, Version 3, probably PGP2'
 xx * compressed packets
 * symmetrically-encrypted encrypted data packets
 xx * make find_keyblock_by_keyid work with subkeys

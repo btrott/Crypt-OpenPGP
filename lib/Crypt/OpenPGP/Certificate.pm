@@ -1,4 +1,4 @@
-# $Id: Certificate.pm,v 1.9 2001/07/26 18:28:54 btrott Exp $
+# $Id: Certificate.pm,v 1.10 2001/07/27 19:39:32 btrott Exp $
 
 package Crypt::OpenPGP::Certificate;
 use strict;
@@ -257,7 +257,7 @@ sub unlock {
     return 1 unless $cert->{is_secret} && $cert->{is_protected};
     my($passphrase) = @_;
     my $cipher = Crypt::OpenPGP::Cipher->new($cert->{cipher});
-    my $key = $cert->{s2k}->generate($passphrase, $cipher->key_len);
+    my $key = $cert->{s2k}->generate($passphrase, $cipher->keysize);
     $cipher->init($key, $cert->{iv});
     my @sec = $cert->{key}->secret_props;
     if ($cert->{version} < 4) {
@@ -303,7 +303,7 @@ sub lock {
     return if !$cert->{is_secret} || $cert->{is_protected};
     my($passphrase) = @_;
     my $cipher = Crypt::OpenPGP::Cipher->new($cert->{cipher});
-    my $sym_key = $cert->{s2k}->generate($passphrase, $cipher->key_len);
+    my $sym_key = $cert->{s2k}->generate($passphrase, $cipher->keysize);
     require Crypt::Random;
     $cert->{iv} = Crypt::Random::makerandom_octet( Length => 8 );
     $cipher->init($sym_key, $cert->{iv});

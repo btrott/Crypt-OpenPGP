@@ -1,6 +1,23 @@
-$Id: Changes,v 1.17 2001/07/27 07:53:11 btrott Exp $
+$Id: Changes,v 1.23 2001/07/27 22:31:25 btrott Exp $
 
 Revision history for Crypt::OpenPGP
+
+0.10  2001.07.27
+    - Added Compat flag to encrypt and sign, added docs. Thanks to
+      Vipul for the idea.
+    - Added support for Twofish and Rijndael ciphers (128-, 192-, and
+      256-bit keys for Rijndael).
+    - Added support for RIPE-MD/160 digest algorithm.
+    - Added Digest param to Crypt::OpenPGP::sign to specify message
+      digest algorithm.
+    - Changed semantics of Compress param to Crypt::OpenPGP::encrypt;
+      it is no longer a simple flag but now the name of a compression
+      algorithm (Zlib or ZIP).
+    - Ciphertext::init and Ciphertext::decrypt were making assumptions
+      about cipher blocksizes; they were using a fixed sync padding of
+      8 bytes, rather than adjusting based on the blocksize. Now fixed.
+    - Cipher::key_len => Cipher::keysize.
+    - Added t/06-cipher.t, test all installed cipher packages.
 
 0.09  2001.07.27
     - Fixed incompatibility with PGP2: PGP2 expects packets of certain

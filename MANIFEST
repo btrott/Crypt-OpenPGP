@@ -45,6 +45,7 @@ t/02-buffer.t
 t/03-3des.t
 t/04-armour.t
 t/05-packets.t
+t/06-cipher.t
 t/10-keyring.t
 t/11-encrypt.t
 t/12-sign.t

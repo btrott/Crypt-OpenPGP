@@ -1,4 +1,4 @@
-# $Id: Compressed.pm,v 1.2 2001/07/27 05:26:54 btrott Exp $
+# $Id: Compressed.pm,v 1.3 2001/07/27 21:21:14 btrott Exp $
 
 package Crypt::OpenPGP::Compressed;
 use strict;
@@ -8,6 +8,13 @@ use Crypt::OpenPGP::Buffer;
 use Crypt::OpenPGP::Constants qw( DEFAULT_COMPRESS );
 use Crypt::OpenPGP::ErrorHandler;
 use base qw( Crypt::OpenPGP::ErrorHandler );
+
+use vars qw( %ALG %ALG_BY_NAME );
+%ALG = ( 1 => 'ZIP', 2 => 'Zlib' );
+%ALG_BY_NAME = map { $ALG{$_} => $_ } keys %ALG;
+
+sub alg { $ALG{$_[1]} || $_[1] }
+sub alg_id { $ALG_BY_NAME{$_[1]} || $_[1] }
 
 sub new {
     my $comp = bless { }, shift;

@@ -1,4 +1,4 @@
-# $Id: Ciphertext.pm,v 1.7 2001/07/25 22:35:24 btrott Exp $
+# $Id: Ciphertext.pm,v 1.9 2001/07/27 20:56:00 btrott Exp $
 
 package Crypt::OpenPGP::Ciphertext;
 use strict;
@@ -21,10 +21,11 @@ sub init {
         require Crypt::Random;
         my $alg = $param{Cipher} || DEFAULT_CIPHER;
         my $cipher = Crypt::OpenPGP::Cipher->new($alg, $key);
-        my $pad = Crypt::Random::makerandom_octet( Length => 8 );
+        my $bs = $cipher->blocksize;
+        my $pad = Crypt::Random::makerandom_octet( Length => $bs );
         $pad .= substr $pad, -2, 2;
         $enc->{ciphertext} = $cipher->encrypt($pad);
-        $cipher->decrypt(substr $enc->{ciphertext}, 2, 8);   ## resync
+        $cipher->decrypt(substr $enc->{ciphertext}, 2, $bs);   ## resync
         $enc->{ciphertext} .= $cipher->encrypt($data);
     }
     $enc;
@@ -43,11 +44,13 @@ sub save { $_[0]->{ciphertext} }
 sub decrypt {
     my $enc = shift;
     my($key, $sym_alg) = @_;
-    my $cipher = Crypt::OpenPGP::Cipher->new($sym_alg, $key);
-    my $pt = $cipher->decrypt(substr $enc->{ciphertext}, 0, 10);
+    my $cipher = Crypt::OpenPGP::Cipher->new($sym_alg, $key) or
+        return $enc->error( Crypt::OpenPGP::Cipher->errstr );
+    my $padlen = $cipher->blocksize + 2;
+    my $pt = $cipher->decrypt(substr $enc->{ciphertext}, 0, $padlen);
     return $enc->error("Bad checksum")
-        unless substr($pt, 6, 2) eq substr($pt, 8, 2);
-    $cipher->decrypt(substr $enc->{ciphertext}, 10);
+        unless substr($pt, -4, 2) eq substr($pt, -2, 2);
+    $cipher->decrypt(substr $enc->{ciphertext}, $padlen);
 }
 
 1;

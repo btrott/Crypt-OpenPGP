@@ -1,4 +1,4 @@
-# $Id: Signature.pm,v 1.9 2001/07/27 07:24:38 btrott Exp $
+# $Id: Signature.pm,v 1.11 2001/07/27 20:57:28 btrott Exp $
 
 package Crypt::OpenPGP::Signature;
 use strict;
@@ -44,7 +44,7 @@ sub init {
     if ((my $obj = $param{Data}) && (my $cert = $param{Key})) {
         $sig->{version} = $param{Version} || 4;
         $sig->{type} = $param{Type} || 0x00;
-        $sig->{hash_alg} = $param{Hash} ? $param{Hash} :
+        $sig->{hash_alg} = $param{Digest} ? $param{Digest} :
             $sig->{version} == 4 ? DEFAULT_DIGEST : 1;
         $sig->{pk_alg} = $cert->key->alg_id;
         if ($sig->{version} < 4) {
@@ -241,7 +241,8 @@ sub hash_data {
 
     $buf->put_bytes($sig->sig_trailer);
 
-    my $hash = Crypt::OpenPGP::Digest->new($sig->{hash_alg});
+    my $hash = Crypt::OpenPGP::Digest->new($sig->{hash_alg}) or
+        return $sig->error( Crypt::OpenPGP::Digest->errstr );
     $hash->hash($buf->bytes);
 }
 
