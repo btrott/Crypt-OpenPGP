@@ -1,10 +1,10 @@
-# $Id: OpenPGP.pm,v 1.43 2001/07/27 22:16:58 btrott Exp $
+# $Id: OpenPGP.pm,v 1.49 2001/07/29 13:47:04 btrott Exp $
 
 package Crypt::OpenPGP;
 use strict;
 
 use vars qw( $VERSION );
-$VERSION = '0.10';
+$VERSION = '0.11';
 
 use Crypt::OpenPGP::Constants qw( DEFAULT_CIPHER );
 use Crypt::OpenPGP::KeyRing;
@@ -41,18 +41,24 @@ use vars qw( %DEFAULTS %COMPAT );
 
 %COMPAT = (
     PGP2 => {
-              'sign' => { Digest => 'MD5', Version => 3 },
+              'sign'    => { Digest => 'MD5', Version => 3 },
               'encrypt' => { Cipher => 'IDEA', Compress => 'ZIP' },
+              'keygen'  => { Type => 'RSA', Cipher => 'IDEA',
+                             Version => 3, Digest => 'MD5' },
     },
 
     PGP5 => {
-              'sign' => { Digest => 'SHA1', Version => 3 },
-              'encrypt' => { Cipher => '3DES', Compress => 'ZIP' },
+              'sign'    => { Digest => 'SHA1', Version => 3 },
+              'encrypt' => { Cipher => 'DES3', Compress => 'ZIP' },
+              'keygen'  => { Type => 'DSA', Cipher => 'DES3',
+                             Version => 4, Digest => 'SHA1' },
     },
 
     GnuPG => {
-              'sign' => { Digest => 'RIPEMD160', Version => 4 },
+              'sign'    => { Digest => 'RIPEMD160', Version => 4 },
               'encrypt' => { Cipher => 'Rijndael', Compress => 'Zlib' },
+              'keygen'  => { Type => 'DSA', Cipher => 'Rijndael',
+                             Version => 4, Digest => 'RIPEMD160' },
     },
 );
 
@@ -200,7 +206,6 @@ sub encrypt {
     my($data, $cert);
     require Crypt::OpenPGP::Cipher;
     require Crypt::OpenPGP::Ciphertext;
-    require Crypt::OpenPGP::SessionKey;
     unless ($data = $param{Data}) {
         my $file = $param{Filename} or
             return $pgp->error("Need either 'Data' or 'Filename' to encrypt");
@@ -217,29 +222,49 @@ sub encrypt {
                 Crypt::OpenPGP::Compressed->errstr);
         $ptdata = Crypt::OpenPGP::PacketFactory->save($cdata);
     }
-    unless ($cert = $param{Key}) {
-        my $kid = $param{KeyID} or return $pgp->error("No KeyID specified");
-        my $ring = Crypt::OpenPGP::KeyRing->new( Filename => $pgp->{PubRing} );
-        (my($kb), $cert) = $ring->find_keyblock_by_keyid(pack 'H*', $kid);
-        return $pgp->error("Could not find public key with KeyID $kid")
-            unless $kb && $cert;
-    }
     require Crypt::Random;
     my $key_data = Crypt::Random::makerandom_octet( Length => 32 );
     my $sym_alg = $param{Cipher} ?
         Crypt::OpenPGP::Cipher->alg_id($param{Cipher}) : DEFAULT_CIPHER;
-    #$sym_alg = 1 if $cert->key->alg eq 'RSA';
+    my($sym_key);
+    if (($cert = $param{Key}) || ($param{KeyID})) {
+        require Crypt::OpenPGP::SessionKey;
+        unless ($cert) {
+            my $kid = $param{KeyID};
+            my $ring = Crypt::OpenPGP::KeyRing->new( Filename =>
+                $pgp->{PubRing} );
+            (my($kb), $cert) = $ring->find_keyblock_by_keyid(pack 'H*', $kid);
+            return $pgp->error("Could not find public key with KeyID $kid")
+                unless $kb && $cert;
+        }
+        $sym_key = Crypt::OpenPGP::SessionKey->new(
+                            Key    => $cert,
+                            SymKey => $key_data,
+                            Cipher => $sym_alg,
+                      ) or
+            return $pgp->error( Crypt::OpenPGP::SessionKey->errstr );
+    }
+    elsif (my $pass = $param{Passphrase}) {
+        require Crypt::OpenPGP::SKSessionKey;
+        require Crypt::OpenPGP::S2k;
+        my $s2k = Crypt::OpenPGP::S2k->new('Salt_Iter');
+        my $keysize = Crypt::OpenPGP::Cipher->new($sym_alg)->keysize;
+        $key_data = $s2k->generate($pass, $keysize);
+        $sym_key = Crypt::OpenPGP::SKSessionKey->new(
+                            Passphrase => $pass,
+                            SymKey     => $key_data,
+                            Cipher     => $sym_alg,
+                            S2k        => $s2k,
+                      ) or
+            return $pgp->error( Crypt::OpenPGP::SKSessionKey->errstr );
+    } else {
+        return $pgp->error("Need something to encrypt with");
+    }
     my $enc = Crypt::OpenPGP::Ciphertext->new(
                         SymKey => $key_data,
                         Data   => $ptdata,
                         Cipher => $sym_alg,
                   );
-    my $sym_key = Crypt::OpenPGP::SessionKey->new(
-                        Key    => $cert,
-                        SymKey => $key_data,
-                        Cipher => $sym_alg,
-                  ) or
-        return $pgp->error( Crypt::OpenPGP::SessionKey->errstr );
     my $enc_data = Crypt::OpenPGP::PacketFactory->save($sym_key, $enc);
     if ($param{Armour}) {
         require Crypt::OpenPGP::Armour;
@@ -285,9 +310,16 @@ sub decrypt {
         ($key, $alg) = $sym_key->decrypt($cert) or
             return $pgp->error("Symkey decrypt failed: " . $sym_key->errstr);
     }
+    elsif (ref($pieces[0]) eq 'Crypt::OpenPGP::SKSessionKey') {
+        my $sym_key = shift @pieces;
+        my $pass = $param{Passphrase} or
+            return $pgp->error("Need passphrase to decrypt session key");
+        ($key, $alg) = $sym_key->decrypt($pass) or
+            return $pgp->error("Symkey decrypt failed: " . $sym_key->errstr);
+    }
     my $enc = $pieces[0];
     $data = $enc->decrypt($key, $alg) or
-        return $enc->errstr("Ciphertext decrypt failed: " . $enc->errstr);
+        return $pgp->error("Ciphertext decrypt failed: " . $enc->errstr);
     my $buf = Crypt::OpenPGP::Buffer->new;
     $buf->append($data);
     my $pt = Crypt::OpenPGP::PacketFactory->parse($buf);
@@ -525,9 +557,12 @@ for your keyring in a number of default places.
 =head2 $pgp->encrypt( %args )
 
 Encrypts a block of data. The encryption is actually done with a symmetric
-cipher; the key for the symmetric cipher is encrypted with the public
-key that you specify, and thus can only be unlocked by the related secret
-key.
+cipher; the key for the symmetric cipher is then encrypted with either
+the public key of the recipient or using a passphrase that you enter. The
+former case is using public-key cryptography, the latter, standard
+symmetric ciphers. In the first case, the session key can only be
+unlocked by someone with the corresponding secret key; in the second, it
+can only be unlocked by someone who knows the passphrase.
 
 Returns a block of data containing two PGP packets: the encrypted
 symmetric key and the encrypted data.
@@ -565,7 +600,21 @@ key. In other words, the ID of the key with which the message should
 be encrypted. The value of the key ID should be specified as a 16-digit
 hexadecimal number.
 
-This argument is mandatory.
+This argument is optional; if not provided you should provide the
+I<Passphrase> option (below) to perform symmetric-key encryption when
+encrypting the session key.
+
+=item * Passphrase
+
+The mechanism to use symmetric-key, or "conventional", encryption,
+when encrypting the session key. In other words, this allows you to
+use I<Crypt::OpenPGP> for encryption/decryption without using public-key
+cryptography; this can be useful in certain circumstances (for example,
+when encrypting data locally on disk).
+
+This argument is optional; if not provided you should provide the
+I<KeyID> option (above) to perform public-key encryption when encrypting
+the session key.
 
 =item * Cipher
 

@@ -1,4 +1,4 @@
-# $Id: Constants.pm,v 1.5 2001/07/26 20:55:53 btrott Exp $
+# $Id: Constants.pm,v 1.6 2001/07/28 21:49:16 btrott Exp $
 
 package Crypt::OpenPGP::Constants;
 use strict;
@@ -55,3 +55,63 @@ sub import {
 }
 
 1;
+__END__
+
+=head1 NAME
+
+Crypt::OpenPGP::Constants - Exportable constants
+
+=head1 SYNOPSIS
+
+    use Crypt::OpenPGP::Constants qw( :tag CONSTANT1 );
+
+=head1 DESCRIPTION
+
+I<Crypt::OpenPGP::Constants> provides a list of common and useful
+constants for use in I<Crypt::OpenPGP>.
+
+=head1 USAGE
+
+None of the constants are exported by default; you have to ask for
+them explicitly. Some of the constants are grouped into bundles that
+you can grab all at once; alternatively you can just take the
+individual constants, one by one.
+
+If you wish to import a group, your I<use> statement should look
+something like this:
+
+    use Crypt::OpenPGP::Constants qw( :group );
+
+Here are the groups:
+
+=over 4
+
+=item * packet
+
+All of the I<PGP_PKT_*> constants. These are constants that define
+packet types.
+
+=back
+
+Other exportable constants, not belonging to a group, are:
+
+=over 4
+
+=item * DEFAULT_CIPHER
+
+=item * DEFAULT_DIGEST
+
+=item * DEFAULT_COMPRESS
+
+Default cipher, digest, and compression algorithms, to be used if no
+specific cipher, digest, or compression algorithm is otherwise
+specified.
+
+=back
+
+=head1 AUTHOR & COPYRIGHTS
+
+Please see the Crypt::OpenPGP manpage for author, copyright, and
+license information.
+
+=cut

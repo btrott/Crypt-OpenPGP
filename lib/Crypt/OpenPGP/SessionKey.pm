@@ -1,4 +1,4 @@
-# $Id: SessionKey.pm,v 1.10 2001/07/27 19:39:33 btrott Exp $
+# $Id: SessionKey.pm,v 1.11 2001/07/29 06:29:37 btrott Exp $
 
 package Crypt::OpenPGP::SessionKey;
 use strict;
@@ -104,3 +104,109 @@ sub _decode {
 }
 
 1;
+__END__
+
+=head1 NAME
+
+Crypt::OpenPGP::SessionKey - Encrypted Session Key
+
+=head1 SYNOPSIS
+
+    use Crypt::OpenPGP::SessionKey;
+
+    my $key_data = 'f' x 64;    ## Not a very good key :)
+
+    my $skey = Crypt::OpenPGP::SessionKey->new(
+                            Key => $public_key,
+                            SymKey => $key_data,
+                    );
+    my $serialized = $skey->save;
+
+    my $skey = Crypt::OpenPGP::SessionKey->parse($buffer);
+    my($key_data, $alg) = $skey->decrypt($secret_key);
+
+=head1 DESCRIPTION
+
+I<Crypt::OpenPGP::SessionKey> implements encrypted session key packets;
+these packets store public-key-encrypted key data that, when decrypted
+using the corresponding secret key, can be used to decrypt a block of
+ciphertext--that is, a I<Crypt::OpenPGP::Ciphertext> object.
+
+=head1 USAGE
+
+=head2 Crypt::OpenPGP::SessionKey->new( %arg )
+
+Creates a new encrypted session key packet object and returns that
+object. If there are no arguments in I<%arg>, the object is created
+empty; this is used, for example in I<parse> (below), to create an
+empty packet which is then filled from the data in the buffer.
+
+If you wish to initialize a non-empty object, I<%arg> can contain:
+
+=over 4
+
+=item * Key
+
+A public key object; in other words, an object of a subclass of
+I<Crypt::OpenPGP::Key::Public>. The public key is used to encrypt the
+encoded session key such that it can only be decrypted by the secret
+portion of the key.
+
+This argument is required (for a non-empty object).
+
+=item * SymKey
+
+The symmetric cipher key: a string of octets that make up the key data
+of the symmetric cipher key. This should be at least long enough for
+the key length of your chosen cipher (see I<Cipher>, below), or, if
+you have not specified a cipher, at least 64 bytes (to allow for long
+cipher key sizes).
+
+This argument is required (for a non-empty object).
+
+=item * Cipher
+
+The name (or ID) of a supported PGP cipher. See I<Crypt::OpenPGP::Cipher>
+for a list of valid cipher names.
+
+This argument is optional; by default I<Crypt::OpenPGP::Cipher> will
+use C<DES3>.
+
+=back
+
+=head2 $skey->save
+
+Serializes the session key packet and returns the string of octets.
+
+=head2 Crypt::OpenPGP::SessionKey->parse($buffer)
+
+Given I<$buffer>, a I<Crypt::OpenPGP::Buffer> object holding (or
+with offset pointing to) an encrypted session key packet, returns
+a new I<Crypt::OpenPGP::Ciphertext> object, initialized with the
+data in the buffer.
+
+=head2 $skey->decrypt($secret_key)
+
+Given a secret key object I<$secret_key> (an object of a subclass of
+I<Crypt::OpenPGP::Key::Public>), decrypts and decodes the encrypted
+session key data. The key data includes the symmetric key itself,
+along with a one-octet ID of the symmetric cipher used to encrypt
+the message.
+
+Returns a list containing two items: the symmetric key and the cipher
+algorithm ID. These are suitable for passing off to the I<decrypt>
+method of a I<Crypt::OpenPGP::Ciphertext> object to decrypt a block
+of encrypted data.
+
+=head2 $skey->key_id
+
+Returns the key ID of the public key used to encrypt the session key;
+this is necessary for finding the appropriate secret key to decrypt
+the key.
+
+=head1 AUTHOR & COPYRIGHTS
+
+Please see the Crypt::OpenPGP manpage for author, copyright, and
+license information.
+
+=cut

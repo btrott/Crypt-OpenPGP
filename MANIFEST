@@ -33,6 +33,7 @@ lib/Crypt/OpenPGP/OnePassSig.pm
 lib/Crypt/OpenPGP/PacketFactory.pm
 lib/Crypt/OpenPGP/Plaintext.pm
 lib/Crypt/OpenPGP/S2k.pm
+lib/Crypt/OpenPGP/SKSessionKey.pm
 lib/Crypt/OpenPGP/SessionKey.pm
 lib/Crypt/OpenPGP/Signature.pm
 lib/Crypt/OpenPGP/Signature/SubPacket.pm
@@ -46,6 +47,7 @@ t/03-3des.t
 t/04-armour.t
 t/05-packets.t
 t/06-cipher.t
+t/07-digest.t
 t/10-keyring.t
 t/11-encrypt.t
 t/12-sign.t

@@ -1,4 +1,4 @@
-# $Id: Trust.pm,v 1.2 2001/07/21 06:54:27 btrott Exp $
+# $Id: Trust.pm,v 1.3 2001/07/29 06:34:29 btrott Exp $
 
 package Crypt::OpenPGP::Trust;
 use strict;
@@ -17,3 +17,27 @@ sub parse {
 }
 
 1;
+__END__
+
+=head1 NAME
+
+Crypt::OpenPGP::Trust - PGP Trust packet
+
+=head1 SYNOPSIS
+
+    use Crypt::OpenPGP::Trust;
+    my $trust = Crypt::OpenPGP::Trust->parse($buffer);
+
+=head1 DESCRIPTION
+
+I<Crypt::OpenPGP::Trust> is a PGP Trust packet. From the OpenPGP
+RFC: "Trust packets contain data that record the user's specifications
+of which key holders are trustworthy introducers, along with other
+information that implementing software uses for trust information."
+
+=head1 AUTHOR & COPYRIGHTS
+
+Please see the Crypt::OpenPGP manpage for author, copyright, and
+license information.
+
+=cut

@@ -1,4 +1,4 @@
-# $Id: Signature.pm,v 1.11 2001/07/27 20:57:28 btrott Exp $
+# $Id: Signature.pm,v 1.12 2001/07/29 07:01:31 btrott Exp $
 
 package Crypt::OpenPGP::Signature;
 use strict;
@@ -247,3 +247,119 @@ sub hash_data {
 }
 
 1;
+__END__
+
+=head1 NAME
+
+Crypt::OpenPGP::Signature - Signature packet
+
+=head1 SYNOPSIS
+
+    use Crypt::OpenPGP::Signature;
+
+    my $sig = Crypt::OpenPGP::Signature->new(
+                               Key  => $secret_key,
+                               Data => $plaintext,
+                               Type => 0x00,
+                     );
+    my $serialized = $sig->save;
+
+    my $sig = Crypt::OpenPGP::Signature->parse($buffer);
+    my $hashed_data = $sig->hash_data($plaintext);
+
+    ## Look up public key by $sig->key_id to get $cert, then...
+
+    my $is_valid_sig = $cert->key->verify($sig, $hashed_data);
+
+=head1 DESCRIPTION
+
+I<Crypt::OpenPGP::Signature> implements PGP signature packets and
+provides functionality for hashing PGP packets to obtain message
+digests; these digests are then signed by the secret key to form a
+signature.
+
+I<Crypt::OpenPGP::Signature> reads and writes both version 3 and version
+4 signatures, along with the signature subpackets found in version 4
+(see I<Crypt::OpenPGP::Signature::SubPacket>).
+
+=head1 USAGE
+
+=head2 Crypt::OpenPGP::Signature->new( %arg )
+
+Creates a new signature packet object and returns that object. If
+there are no arguments in I<%arg>, the object is created empty; this is
+used, for example, in I<parse> (below), to create an empty packet which is
+then filled from the data in the buffer.
+
+If you wish to initialize a non-empty object, I<%arg> can contain:
+
+=over 4
+
+=item * Data
+
+A PGP packet object of some kind. Currently the two supported objects
+are I<Crypt::OpenPGP::Certificate> objects, to create self-signatures
+for keyrings, and I<Crypt::OpenPGP::Plaintext> objects, for signatures
+on blocks of data.
+
+This argument is required (for a non-empty packet).
+
+=item * Key
+
+A secret-key certificate that can be used to sign the data. In other
+words an object of type I<Crypt::OpenPGP::Certificate> that holds
+a secret key.
+
+This argument is required.
+
+=item * Version
+
+The packet format version of the signature. Valid values are either
+C<3> or C<4>; version C<4> signatures are the default, but will be
+incompatible with older PGP implementations; for example, PGP2 will
+only read version 3 signatures; PGP5 can read version 4 signatures,
+but only on signatures of data packets (not on key signatures).
+
+This argument is optional; the default is version 4.
+
+=item * Type
+
+Specifies the type of signature (data, key, etc.). Valid values can
+be found in the OpenPGP RFC, section 5.2.1.
+
+This argument is optional; the default is C<0x00>, signature of a
+binary document.
+
+=item * Digest
+
+The digest algorithm to use when generating the digest of the data
+to be signed. See the documentation for I<Crypt::OpenPGP::Digest>
+for a list of valid values.
+
+This argument is optional; the default is C<SHA1>.
+
+=back
+
+=head2 $sig->save
+
+Serializes the signature packet and returns a string of octets.
+
+=head2 Crypt::OpenPGP::Signature->parse($buffer)
+
+Given I<$buffer>, a I<Crypt::OpenPGP::Buffer> object holding (or
+with offset pointing to) a signature packet, returns a new
+I<Crypt::OpenPGP::Signature> object, initialized with the signature
+data in the buffer.
+
+=head2 $sig->hash_data(@data)
+
+=head2 $sig->key_id
+
+Returns the ID of the key that created the signature.
+
+=head1 AUTHOR & COPYRIGHTS
+
+Please see the Crypt::OpenPGP manpage for author, copyright, and
+license information.
+
+=cut

@@ -1,4 +1,4 @@
-# $Id: Armour.pm,v 1.7 2001/07/26 17:49:21 btrott Exp $
+# $Id: Armour.pm,v 1.8 2001/07/28 06:18:31 btrott Exp $
 
 package Crypt::OpenPGP::Armour;
 use strict;
@@ -131,3 +131,86 @@ sub _checksum {
 }
 
 1;
+__END__
+
+=head1 NAME
+
+Crypt::OpenPGP::Armour - ASCII Armouring and Unarmouring
+
+=head1 SYNOPSIS
+
+    use Crypt::OpenPGP::Armour;
+
+    my $armoured = Crypt::OpenPGP::Armour->armour(
+                           Data => "foo bar baz",
+                           Object => "FOO OBJECT",
+                           Headers => {
+                                         Version => '0.57',
+                                         Comment => 'FooBar',
+                                      },
+                     );
+
+    my $decoded = Crypt::OpenPGP::Armour->unarmour( $armoured ) or
+        die Crypt::OpenPGP::Armour->errstr;
+
+=head1 DESCRIPTION
+
+This module converts arbitrary-length strings of binary octets into
+Base64-encoded ASCII messages suitable for transfer as text. It
+also converts in the opposite direction, taking an armoured message
+and returning the binary data, along with headers.
+
+=head1 USAGE
+
+=head2 Crypt::OpenPGP::Armour->armour( %args )
+
+Converts arbitrary-length strings of binary octets in an encoded
+message containing 4 parts: head and tail markers that identify the
+type of content contained therein; a group of newline-separated
+headers at the top of the message; Base64-encoded data; and a
+Base64-encoded CRC24 checksum of the message body.
+
+Returns I<undef> on failure, the encoded message on success. In the
+case of failure call the class method I<errstr> to get the error
+message.
+
+I<%args> can contain:
+
+=over 4
+
+=item * Object
+
+Specifies the type of object being armoured; the string C<PGP > (PGP
+followed by a space) will be prepended to the value you pass in.
+
+This argument is required.
+
+=item * Data
+
+The binary octets to be encoded as the body of the armoured message;
+these octets will be encoded into ASCII using I<MIME::Base64>.
+
+This argument is required.
+
+=item * Headers
+
+A reference to a hash containing key-value pairs, where the key is the
+name of the the header and the value the header value. These headers
+are placed at the top of the encoded message in the form C<Header: Value>.
+
+=back
+
+=head2 Crypt::OpenPGP::Armour->unarmour($message)
+
+Decodes an ASCII-armoured message and returns a hash reference whose
+keys are the arguments provided to I<armour>, above. Returns I<undef>
+on failure (for example, if the checksum fails to match, or if the
+message is in an incomprehensible format). In case of failure call
+the class method I<errstr> to get the text of the error message.
+
+=head1 AUTHOR & COPYRIGHTS
+
+Please see the Crypt::OpenPGP manpage for author, copyright, and
+license information.
+
+=cut

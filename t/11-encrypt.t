@@ -1,10 +1,10 @@
-# $Id: 11-encrypt.t,v 1.2 2001/07/24 20:39:46 btrott Exp $
+# $Id: 11-encrypt.t,v 1.4 2001/07/29 13:40:33 btrott Exp $
 
 use Test;
 use Crypt::OpenPGP;
 use strict;
 
-BEGIN { plan tests => 9 }
+BEGIN { plan tests => 12 }
 
 use vars qw( $SAMPLES );
 unshift @INC, 't/';
@@ -51,6 +51,23 @@ $ct = $pgp->encrypt(
             );
 ok($ct);
 ok($ct !~ /^-----BEGIN PGP MESSAGE/);
+
+$pt = $pgp->decrypt(
+               Data       => $ct,
+               Passphrase => $passphrase,
+            );
+ok($pt);
+
+ok($pt eq $text);
+
+## Now test conventional encryption; might as well just
+## reuse the passphrase.
+
+$ct = $pgp->encrypt(
+               Passphrase => $passphrase,
+               Data       => $text,
+            );
+ok($ct);
 
 $pt = $pgp->decrypt(
                Data       => $ct,

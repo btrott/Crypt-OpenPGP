@@ -1,4 +1,4 @@
-# $Id: Certificate.pm,v 1.10 2001/07/27 19:39:32 btrott Exp $
+# $Id: Certificate.pm,v 1.13 2001/07/29 06:04:43 btrott Exp $
 
 package Crypt::OpenPGP::Certificate;
 use strict;
@@ -157,7 +157,7 @@ sub parse {
             $cert->{is_protected} = 1;
             if ($cert->{cipher} == 255) {
                 $cert->{cipher} = $buf->get_int8;
-                $cert->{s2k} = Crypt::OpenPGP::S2k->new('', $buf);
+                $cert->{s2k} = Crypt::OpenPGP::S2k->parse($buf);
             }
             else {
                 $cert->{s2k} = Crypt::OpenPGP::S2k->new('Simple');
@@ -215,7 +215,7 @@ sub save {
         if ($cert->{cipher}) {
             $buf->put_int8(255);
             $buf->put_int8($cert->{cipher});
-            $buf->append($cert->{s2k}->save->bytes);
+            $buf->append($cert->{s2k}->save);
             $buf->put_bytes($cert->{iv});
 
             if ($cert->{version} < 4) {
@@ -335,3 +335,178 @@ sub lock {
 }
 
 1;
+__END__
+
+=head1 NAME
+
+Crypt::OpenPGP::Certificate - PGP Key certificate
+
+=head1 SYNOPSIS
+
+    use Crypt::OpenPGP::Certificate;
+
+    my $cert = Crypt::OpenPGP::Certificate->new(
+                            Key => $dsa_secret_key,
+                            Version => 4,
+                            Passphrase => 'foobar',
+                   );
+    my $serialized = $cert->save;
+
+    my $cert = Crypt::OpenPGP::Certificate->parse($buffer);
+    $cert->unlock('foobar');
+
+=head1 DESCRIPTION
+
+I<Crypt::OpenPGP::Certificate> encapsulates a PGP key certificate
+for any underlying public-key algorithm, for public and secret keys,
+and for master keys and subkeys. All of these scenarios are handled
+by the same I<Certificate> class.
+
+A I<Crypt::OpenPGP::Certificate> object wraps around a
+I<Crypt::OpenPGP::Key> object; the latter implements all public-key
+algorithm-specific functionality, while the certificate layer
+manages some meta-data about the key, as well as the mechanisms
+for locking and unlocking a secret key (using a passphrase).
+
+=head1 USAGE
+
+=head2 Crypt::OpenPGP::Certificate->new( %arg )
+
+Constructs a new PGP key certificate object and returns that object.
+If no arguments are provided in I<%arg>, the certificate is empty;
+this is used in I<parse>, for example, to construct an empty object,
+then fill it with the data in the buffer.
+
+I<%arg> can contain:
+
+=over 4
+
+=item * Key
+
+The public/secret key object, an object of type I<Crypt::OpenPGP::Key>.
+
+This argument is required (for a non-empty certificate).
+
+=item * Version
+
+The certificate packet version, as defined in the OpenPGP RFC. The
+two valid values are C<3> and C<4>.
+
+This argument is optional; if not provided the default is to produce
+version C<4> certificates. You may wish to override this for
+compatibility with older versions of PGP.
+
+=item * Subkey
+
+A boolean flag: if true, indicates that this certificate is a subkey,
+not a master key.
+
+This argument is optional; the default value is C<0>.
+
+=item * Validity
+
+The number of days that this certificate is valid. This argument only
+applies when creating a version 3 certificate; version 4 certificates
+hold this information in a signature.
+
+This argument is optional; the default value is C<0>, which means that
+the certificate never expires.
+
+=item * Passphrase
+
+If you are creating a certificate for a secret key--indicated by whether
+or not the I<Key> (above) is a secret key--you will need to lock it
+(that is, encrypt the secret part of the key). The string provided in
+I<Passphrase> is used as the passphrase to lock the key.
+
+This argument is required if the certificate holds a secret key.
+
+=item * Cipher
+
+Specifies the symmetric cipher to use when locking (encrypting) the
+secret part of a secret key. Valid values are any supported symmetric
+cipher names, which can be found in I<Crypt::OpenPGP::Cipher>.
+
+This argument is optional; if not specified, C<DES3> is used.
+
+=back
+
+=head2 $cert->save
+
+Serializes the I<Crypt::OpenPGP::Certificate> object I<$cert> into a
+string of octets, suitable for saving in a keyring file.
+
+=head2 Crypt::OpenPGP::Certificate->parse($buffer)
+
+Given I<$buffer>, a I<Crypt::OpenPGP::Buffer> object holding (or with
+offset point to) a certificate packet, returns a new object of type
+I<Crypt::OpenPGP::Certificate>, initialized with the data from the
+buffer.
+
+=head2 $cert->lock($passphrase)
+
+Locks the secret key data by encrypting that data with I<$passphrase>.
+
+Returns true on success, C<undef> on failure; in the case of failure
+call I<errstr> to get the error message.
+
+=head2 $cert->unlock($passphrase)
+
+Uses the passphrase I<$passphrase> to unlock (decrypt) the secret
+part of the key.
+
+Returns true on success, C<undef> on failure; in the case of failure
+call I<errstr> to get the error message.
+
+=head2 $cert->fingerprint
+
+Returns the key fingerprint.
+
+=head2 $cert->key_id
+
+Returns the key ID.
+
+=head2 $cert->key
+
+Returns the algorithm-specific portion of the certificate, the public
+or secret key object (an object of type I<Crypt::OpenPGP::Key>).
+
+=head2 $cert->public_cert
+
+Returns a public version of the certificate, with a public key. If
+the certificate was already public, the same certificate is returned;
+if it was a secret certificate, a new I<Crypt::OpenPGP::Certificate>
+object is created, and the secret key is made into a public version
+of the key.
+
+=head2 $cert->version
+
+Returns the version of the certificate (C<3> or C<4>).
+
+=head2 $cert->timestamp
+
+Returns the creation date and time (in epoch time).
+
+=head2 $cert->validity
+
+Returns the number of days that the certificate is valid for version
+3 keys.
+
+=head2 $cert->is_secret
+
+Returns true if the certificate holds a secret key, false otherwise.
+
+=head2 $cert->is_protected
+
+Returns true if the certificate is locked, false otherwise.
+
+=head2 $cert->is_subkey
+
+Returns true if the certificate is a subkey, false otherwise.
+
+=head1 AUTHOR & COPYRIGHTS
+
+Please see the Crypt::OpenPGP manpage for author, copyright, and
+license information.
+
+=cut

@@ -1,4 +1,4 @@
-# $Id: Cipher.pm,v 1.10 2001/07/27 22:23:00 btrott Exp $
+# $Id: Cipher.pm,v 1.14 2001/07/29 12:47:18 btrott Exp $
 
 package Crypt::OpenPGP::Cipher;
 use strict;
@@ -28,6 +28,10 @@ sub new {
     my $pkg = join '::', $class, $alg;
     my $ciph = bless { __alg => $alg,
                        __alg_id => $ALG_BY_NAME{$alg} }, $pkg;
+    my $impl_class = $ciph->crypt_class;
+    eval "use $impl_class;";
+    return $class->error("Error loading cipher implementation: $@")
+        if $@;
     $ciph->init(@_);
 }
 
@@ -36,8 +40,10 @@ sub init {
     my($key, $iv) = @_;
     if ($key) {
         my $class = $ciph->crypt_class;
-        eval "use $class;";
-        my $c = $class->new(substr($key, 0, $ciph->keysize));
+        ## Make temp variable, because Rijndael checks SvPOK, which
+        ## doesn't seem to like a value that isn't a variable?
+        my $tmp = substr $key, 0, $ciph->keysize;
+        my $c = $class->new($tmp);
         $ciph->{cipher} = Crypt::OpenPGP::CFB->new($c, $iv);
     }
     $ciph;
@@ -56,10 +62,15 @@ package Crypt::OpenPGP::Cipher::IDEA;
 use strict;
 use base qw( Crypt::OpenPGP::Cipher );
 
-*Crypt::IDEA::new = \&IDEA::new;
-*Crypt::IDEA::blocksize = \&IDEA::blocksize;
-*Crypt::IDEA::encrypt = \&IDEA::encrypt;
-*Crypt::IDEA::decrypt = \&IDEA::decrypt;
+sub init {
+    my $ciph = shift;
+    my($key, $iv) = @_;
+    if ($key) {
+        my $c = IDEA->new(substr($key, 0, $ciph->keysize));
+        $ciph->{cipher} = Crypt::OpenPGP::CFB->new($c, $iv);
+    }
+    $ciph;
+}
 
 sub crypt_class { 'Crypt::IDEA' }
 sub keysize { 16 }
@@ -114,3 +125,83 @@ sub keysize { 32 }
 sub blocksize { 16 }
 
 1;
+__END__
+
+=head1 NAME
+
+Crypt::OpenPGP::Cipher - PGP symmetric cipher factory
+
+=head1 SYNOPSIS
+
+    use Crypt::OpenPGP::Cipher;
+
+    my $cipher = Crypt::OpenPGP::Cipher->new($name);
+
+    my $ct = $cipher->encrypt($plaintext);
+    my $pt = $cipher->decrypt($ct);
+
+=head1 DESCRIPTION
+
+I<Crypt::OpenPGP::Cipher> is a factory class for PGP symmetric ciphers.
+All cipher objects are subclasses of this class and share a common
+interface; when creating a new cipher object, the object is blessed
+into the subclass to take on algorithm-specific functionality.
+
+A I<Crypt::OpenPGP::Cipher> objectt is a wrapper around a
+I<Crypt::OpenPGP::CFB> object, which in turn wraps around the actual
+cipher implementation (eg. I<Crypt::Blowfish> for a Blowfish cipher).
+This allows all ciphers to share a common interface and a simple
+instantiation method.
+
+=head1 USAGE
+
+=head2 Crypt::OpenPGP::Cipher->new($cipher)
+
+Creates a new symmetric cipher object of type I<$cipher>; I<$cipher>
+can be either the name of a cipher (in I<Crypt::OpenPGP> parlance) or
+the numeric ID of the cipher (as defined in the OpenPGP RFC). Using
+a cipher name is recommended, for the simple reason that it is easier
+to understand quickly (not everyone knows the cipher IDs).
+
+Valid cipher names are: C<IDEA>, C<DES3>, C<Blowfish>, C<Rijndael>,
+C<Rijndael192>, C<Rijndael256>, and C<Twofish>.
+
+Returns the new cipher object on success. On failure returns C<undef>;
+the caller should check for failure and call the class method I<errstr>
+if a failure occurs. A typical reason this might happen is an
+unsupported cipher name or ID.
+
+=head2 $cipher->encrypt($plaintext)
+
+Encrypts the plaintext I<$plaintext> and returns the encrypted text
+(ie. ciphertext). The encryption is done in CFB mode using the
+underlying cipher implementation.
+
+=head2 $cipher->decrypt($ciphertext)
+
+Decrypts the ciphertext I<$ciphertext> and returns the plaintext. The
+decryption is done in CFB mode using the underlying cipher
+implementation.
+
+=head2 $cipher->alg
+
+Returns the name of the cipher algorithm (as listed above in I<new>).
+
+=head2 $cipher->alg_id
+
+Returns the numeric ID of the cipher algorithm.
+
+=head2 $cipher->blocksize
+
+Returns the blocksize of the cipher algorithm (in bytes).
+
+=head2 $cipher->keysize
+
+Returns the keysize of the cipher algorithm (in bytes).
+
+=head1 AUTHOR & COPYRIGHTS
+
+Please see the Crypt::OpenPGP manpage for author, copyright, and
+license information.
+
+=cut

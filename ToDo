@@ -1,33 +1,42 @@
-$Id: ToDo,v 1.16 2001/07/27 16:46:03 btrott Exp $
+$Id: ToDo,v 1.18 2001/07/29 14:08:09 btrott Exp $
 
 Crypt::OpenPGP todo
 --------
 xx * Crypt::OpenPGP main USAGE docs
-* docs (for other classes)
+xx * docs (for other classes)
 * support for CAST5, ElGamal signing
-* compatibility param to encrypt and sign (and keygen, maybe), eg.
-  Compat => 'PGP2' turns on Version => 3 and Cipher => 'IDEA'
+xx * more support for looking up keys in keyring (eg. look up userid, etc.)
+* caching in find_keyblock. let caller pass in 'marker' code-ref that, given
+  a packet, returns a unique 'marker' to point to that keyblock. eg. lookup
+  by keyid returns the certificate keyid, lookup by userid returns the
+  userid, etc. then, two levels of caching: 1) store offsets of keyblocks
+  by marker; 2) store already-parsed keyblocks by marker. we could let the
+  calling function do the latter, of course, ie. find_keyblock_by_keyid
+  would manage a hash of keyids => keyblocks. also: when reading a keyblock
+  (after already finding the start offset), maybe don't parse SECRET_KEY
+  and PUBLIC_KEY packets? since we already have the start cert there is
+  no use in parsing the next one we come to, because that indicates the
+  start of a new keyblock.
+xx* compatibility param to encrypt and sign (and keygen, maybe), eg.
+    Compat => 'PGP2' turns on Version => 3 and Cipher => 'IDEA'
 * smart detection and description of arbitrary files, eg. pass in some
   data and give back 'RSA signed message, Version 3, probably PGP2'
 xx * compressed packets
-* symmetrically-encrypted encrypted data packets
+xx * symmetrically-encrypted encrypted data packets
+* subkey generation
+* encrypted MDC packets
 xx * make find_keyblock_by_keyid work with subkeys
 xx * key generation, secret certificate saving and encrypting
 xx * Crypt::OpenPGP high-level DWIM interface
 xx * support for armouring
 xx * support for writing packets (v4 fingerprints/key IDs will come with this)
-* more support for looking up keys in keyring (eg. look up userid, etc.)
 * keyblock merging keys, signatures, user IDs
 xx * implement a KeyRing::find method that looks only for specific key IDs, etc.
 xx * generate fingerprint on cert while reading in (in 'parse'); that way we
      don't have to reserialize
 * Crypt::OpenPGP::Plaintext::encrypt should encrypt data and return a
   Crypt::OpenPGP::Ciphertext packet
-* improve CRC24 implementation by using C implementation. problem:
-  String::CRC does not work for me (doesn't accept init, for one thing).
-* check all errors
-* add tests for more versions of PGP, more pkalgs, more ciphers, etc.
-  to the test suite.
+* add tests for more versions of PGP, more pkalgs
 * improve subpacket system: constants for types, better integration into
   signatures, etc.
 xx * better installation: determine prereqs based on answers to prompts
@@ -35,3 +44,5 @@ xx * better installation: determine prereqs based on answers to prompts
 * use key flags to determine "what a key can do" (ie. signing, encryption)
 * support writing v4 packet headers
 * add some example scripts
+* improve CRC24 implementation by using C implementation. problem:
+  String::CRC does not work for me (doesn't accept init, for one thing).

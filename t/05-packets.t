@@ -1,13 +1,14 @@
-# $Id: 05-packets.t,v 1.1 2001/07/27 07:52:48 btrott Exp $
+# $Id: 05-packets.t,v 1.3 2001/07/28 07:58:06 btrott Exp $
 
 use Test;
+use strict;
 use Crypt::OpenPGP::PacketFactory;
 use Crypt::OpenPGP::Plaintext;
 use Crypt::OpenPGP::UserID;
 use Crypt::OpenPGP::Buffer;
 use Crypt::OpenPGP::Constants qw( PGP_PKT_USER_ID PGP_PKT_PLAINTEXT );
 
-BEGIN { plan tests => 22 }
+BEGIN { plan tests => 28 }
 
 ## 184 bytes
 my $text = <<TEXT;
@@ -68,7 +69,7 @@ ok(ref($pkts[2]), 'Crypt::OpenPGP::Plaintext');
 ## Test finding specific packets
 
 @pkts = ();
-$buf->{offset} = 0;
+$buf->reset_offset;
 push @pkts, $pkt
     while $pkt = Crypt::OpenPGP::PacketFactory->parse($buf,
         [ PGP_PKT_USER_ID ]);
@@ -76,10 +77,25 @@ ok(@pkts == 1);
 ok(ref($pkts[0]), 'Crypt::OpenPGP::UserID');
 
 @pkts = ();
-$buf->{offset} = 0;
+$buf->reset_offset;
 push @pkts, $pkt
     while $pkt = Crypt::OpenPGP::PacketFactory->parse($buf,
         [ PGP_PKT_PLAINTEXT ]);
 ok(@pkts == 2);
 ok(ref($pkts[0]), 'Crypt::OpenPGP::Plaintext');
 ok(ref($pkts[1]), 'Crypt::OpenPGP::Plaintext');
+
+## Test finding, but not parsing, specific packets
+
+@pkts = ();
+$buf->reset_offset;
+push @pkts, $pkt
+    while $pkt = Crypt::OpenPGP::PacketFactory->parse($buf,
+        [ PGP_PKT_PLAINTEXT, PGP_PKT_USER_ID ],
+        [ PGP_PKT_USER_ID ]);
+ok(@pkts == 3);
+ok(ref($pkts[0]), 'HASH');
+ok($pkts[0]->{__unparsed});
+ok(ref($pkts[1]), 'Crypt::OpenPGP::UserID');
+ok(ref($pkts[2]), 'HASH');
+ok($pkts[2]->{__unparsed});

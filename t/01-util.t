@@ -1,12 +1,12 @@
-# $Id: 01-util.t,v 1.2 2001/07/25 00:36:21 btrott Exp $
+# $Id: 01-util.t,v 1.3 2001/07/29 03:28:26 btrott Exp $
 
 use strict;
 
 use Test;
 use Math::Pari;
-use Crypt::OpenPGP::Util qw( bin2mp mp2bin bitsize );
+use Crypt::OpenPGP::Util qw( bin2mp mp2bin bitsize mod_exp mod_inverse );
 
-BEGIN { plan tests => 30 }
+BEGIN { plan tests => 33 }
 
 use vars qw( @TESTS );
 @TESTS = (
@@ -53,3 +53,12 @@ for my $t (@TESTS) {
     ok(mp2bin($n), $t->[0]);
 }
  
+my($n1, $n2, $n3, $n4);
+($n1, $n2, $n3, $n4) = map PARI($_), ("23098230958", "35", "10980295809854", "5115018827600");
+my $num = mod_exp($n1, $n2, $n3);
+ok($num, $n4);
+
+($n1, $n2, $n3) = map PARI($_), ("34093840983", "23509283509", "7281956166");
+$num = mod_inverse($n1, $n2);
+ok($num, $n3);
+ok(1, ($n1*$num)%$n2);

@@ -1,4 +1,4 @@
-# $Id: 06-cipher.t,v 1.1 2001/07/27 22:29:52 btrott Exp $
+# $Id: 06-cipher.t,v 1.3 2001/07/29 12:48:37 btrott Exp $
 
 use Test;
 use Crypt::OpenPGP::Cipher;
@@ -15,7 +15,7 @@ BEGIN {
     for my $cid (keys %TESTS) {
         my $cipher = Crypt::OpenPGP::Cipher->new($cid);
         if ($cipher) {
-            $num_tests += 4;
+            $num_tests += 7;
         } else {
             delete $TESTS{$cid};
         }
@@ -24,10 +24,13 @@ BEGIN {
     plan tests => $num_tests;
 }
 
-for my $cid (sort { $a <=> $b } keys %TESTS) {
+for my $cid (keys %TESTS) {
     my $ciph1 = Crypt::OpenPGP::Cipher->new($cid, $KEY);
-    my $ciph2 = Crypt::OpenPGP::Cipher->new($cid, $KEY);
     ok($ciph1);
+    ok($ciph1->alg, $TESTS{$cid});
+    ok($ciph1->alg_id, $cid);
+    ok($ciph1->blocksize, $ciph1->{cipher}{cipher}->blocksize);
+    my $ciph2 = Crypt::OpenPGP::Cipher->new($cid, $KEY);
     ok($ciph2);
     my($enc, $dec);
     $enc = $ciph1->encrypt(_checkbytes());

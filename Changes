@@ -1,6 +1,22 @@
-$Id: Changes,v 1.23 2001/07/27 22:31:25 btrott Exp $
+$Id: Changes,v 1.32 2001/07/29 13:58:56 btrott Exp $
 
 Revision history for Crypt::OpenPGP
+
+0.11  2001.07.29
+    - Added support for symmetric-key encrypted session key packets,
+      which means that Crypt::OpenPGP now supports "conventional"
+      encryption of data, in addition to the public-key encryption that
+      was already supported.
+    - Added KeyRing::find_keyblock_by_uid to find a keyblock in a keyring
+      given a user id (or part of a user id).
+    - KeyRing::find_keyblock_by_keyid now caches keyblocks/certs that
+      it has found, so for any given key ID it only needs to look up
+      that key ID once, then the block will be cached.
+    - Added tests for Digest factory objects (t/07-digest.t).
+    - Added tests for mod_exp and mod_inverse in t/01-util.t.
+    - Added docs for all main classes/modules.
+    - Fix Compat settings for PGP5, 3DES => DES3. Thanks to Vipul
+      for the spot and patch.
 
 0.10  2001.07.27
     - Added Compat flag to encrypt and sign, added docs. Thanks to

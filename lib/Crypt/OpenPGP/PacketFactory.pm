@@ -1,4 +1,4 @@
-# $Id: PacketFactory.pm,v 1.12 2001/07/27 07:24:38 btrott Exp $
+# $Id: PacketFactory.pm,v 1.16 2001/07/29 13:21:06 btrott Exp $
 
 package Crypt::OpenPGP::PacketFactory;
 use strict;
@@ -11,6 +11,7 @@ use vars qw( %PACKET_TYPES %PACKET_TYPES_BY_CLASS );
 %PACKET_TYPES = (
     PGP_PKT_PUBKEY_ENC()    => { class => 'Crypt::OpenPGP::SessionKey' },
     PGP_PKT_SIGNATURE()     => { class => 'Crypt::OpenPGP::Signature' },
+    PGP_PKT_SYMKEY_ENC()    => { class => 'Crypt::OpenPGP::SKSessionKey' },
     PGP_PKT_ONEPASS_SIG()   => { class => 'Crypt::OpenPGP::OnePassSig' },
     PGP_PKT_SECRET_KEY()    => { class => 'Crypt::OpenPGP::Certificate',
                                  args  => [ 1, 0 ] },
@@ -32,30 +33,33 @@ use vars qw( %PACKET_TYPES %PACKET_TYPES_BY_CLASS );
 
 sub parse {
     my $class = shift;
-    my($buf, $find) = @_;
+    my($buf, $find, $parse) = @_;
     return unless $buf && $buf->offset < $buf->length;
-    my %find;
+    my(%find, %parse);
     if ($find) {
         %find = ref($find) eq 'ARRAY' ? (map { $_ => 1 } @$find) :
                                         ($find => 1);
     }
-
-    my($type, $len, $b);
-    if (keys %find) {
-        do {
-            ($type, $len) = $class->_parse_header($buf);
-            $b = $buf->extract($len ? $len : $buf->length - $buf->offset);
-            return unless $type;
-        } while !$find{$type};                          ## Skip
+    else {
+        %find = map { $_ => 1 } keys %PACKET_TYPES;
+    }
+    if ($parse) {
+        %parse = ref($parse) eq 'ARRAY' ? (map { $_ => 1 } @$parse) :
+                                           ($parse => 1);
     }
     else {
-        ($type, $len) = $class->_parse_header($buf);
-        $b = $buf->extract($len ? $len : $buf->length - $buf->offset);
+        %parse = %find;
     }
 
+    my($type, $len, $hdrlen, $b);
+    do {
+        ($type, $len, $hdrlen) = $class->_parse_header($buf);
+        $b = $buf->extract($len ? $len : $buf->length - $buf->offset);
+        return unless $type;
+    } while !$find{$type};                 ## Skip
 
     my $obj;
-    if (my $ref = $PACKET_TYPES{$type}) {
+    if ($parse{$type} && (my $ref = $PACKET_TYPES{$type})) {
         my $pkt_class = $ref->{class};
         my @args = $ref->{args} ? @{ $ref->{args} } : ();
         eval "use $pkt_class;";
@@ -63,7 +67,8 @@ sub parse {
         $obj = $pkt_class->parse($b, @args);
     }
     else {
-        $obj = { type => $type, length => $len };
+        $obj = { type => $type, length => $len,
+                 __pkt_len => $len + $hdrlen, __unparsed => 1 };
     }
     $obj;
 }
@@ -73,6 +78,7 @@ sub _parse_header {
     my($buf) = @_;
     return unless $buf && $buf->offset < $buf->length;
 
+    my $off_start = $buf->offset;
     my $tag = $buf->get_int8;
     return $class->error("Parse error: bit 7 not set!")
         unless $tag & 0x80;
@@ -100,7 +106,7 @@ sub _parse_header {
             $len += $buf->get_int8;
         }
     }
-    ($type, $len);
+    ($type, $len, $buf->offset - $off_start);
 }
 
 sub save {
@@ -152,3 +158,64 @@ sub save {
 }
 
 1;
+__END__
+
+=head1 NAME
+
+Crypt::OpenPGP::PacketFactory - Parse and save PGP packet streams
+
+=head1 SYNOPSIS
+
+    use Crypt::OpenPGP::PacketFactory;
+
+    while (my $packet = Crypt::OpenPGP::PacketFactory->parse($buf)) {
+        ## Do something with $packet
+    }
+
+    my $serialized = Crypt::OpenPGP::PacketFactory->save(@packets);
+
+=head1 DESCRIPTION
+
+I<Crypt::OpenPGP::PacketFactory> parses PGP buffers (objects of type
+I<Crypt::OpenPGP::Buffer>) and generates packet objects of various
+packet classes (for example, I<Crypt::OpenPGP::Certificate> objects,
+I<Crypt::OpenPGP::Signature> objects, etc.). It also takes lists of
+packets, serializes each of them, and adds type/length headers to
+them, forming a stream of packets suitable for armouring, writing
+to disk, sending through email, etc.
+
+=head1 USAGE
+
+=head2 Crypt::OpenPGP::PacketFactory->parse($buffer [, $find ])
+
+Given a buffer object I<$buffer> of type I<Crypt::OpenPGP::Buffer>,
+iterates through the packets serialized in the buffer, parsing
+each one, and returning each packet one by one. In other words, given
+a buffer, it acts as a standard iterator.
+
+By default I<parse> parses and returns all packets in the buffer, of
+any packet type. If you are only looking for packets of a specific
+type, though, it makes no sense to return every packet; you can
+control which packets I<parse> parses and returns with I<$find>, which
+should be a reference to a list of packet types to find in the buffer.
+Only packets of those types will be parsed and returned to you. You
+can get the packet type constants from I<Crypt::OpenPGP::Constants>
+by importing the C<:packet> tag.
+
+Returns the next packet in the buffer until the end of the buffer
+is reached (or until there are no more of the packets which you wish
+to find), at which point returns a false value.
+
+=head2 Crypt::OpenPGP::PacketFactory->save(@packets)
+
+Given a list of packets I<@packets>, serializes each packet, then
+adds a type/length header on to each one, resulting in a string of
+octets representing the serialized packets, suitable for passing in
+to I<parse>, or for writing to disk, or anywhere else.
+
+=head1 AUTHOR & COPYRIGHTS
+
+Please see the Crypt::OpenPGP manpage for author, copyright, and
+license information.
+
+=cut

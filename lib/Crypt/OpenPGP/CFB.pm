@@ -1,4 +1,4 @@
-# $Id: CFB.pm,v 1.3 2001/07/24 03:55:16 btrott Exp $
+# $Id: CFB.pm,v 1.4 2001/07/28 19:50:18 btrott Exp $
 
 # This code based slightly on the Systemics Crypt::CFB.
 # Parts Copyright (C) 1995, 1996 Systemics Ltd (http://www.systemics.com/)
@@ -58,3 +58,41 @@ sub decrypt {
 }
 
 1;
+__END__
+
+=head1 NAME
+
+Crypt::OpenPGP::CFB - PGP Cipher Feedback Mode
+
+=head1 SYNOPSIS
+
+    use Crypt::OpenPGP::CFB;
+
+    my $cipher = Crypt::Blowfish->new($key);   ## for example
+    my $cfb = Crypt::OpenPGP::CFB->new($cipher, $iv);
+
+    my $ct = $cfb->encrypt($plaintext);
+
+    my $pt = $cfb->decrypt($ct);
+
+=head1 DESCRIPTION
+
+I<Crypt::OpenPGP::CFB> implements the variant of Cipher Feedback mode
+that PGP uses in its encryption and decryption. The key difference
+with PGP CFB is that the CFB state is resynchronized at each
+encryption/decryption. This applies both when encrypting secret key
+data and in symmetric encryption of standard encrypted data. More
+differences are described in the OpenPGP RFC, in section 12.8
+(OpenPGP CFB mode).
+
+Typically you should never need to directly use I<Crypt::OpenPGP::CFB>;
+I<Crypt::OpenPGP::Cipher> objects wrap around an instance of this
+class and provide a uniform interface to symmetric ciphers. See
+the documentation for that module for usage details.
+
+=head1 AUTHOR & COPYRIGHTS
+
+Please see the Crypt::OpenPGP manpage for author, copyright, and
+license information.
+
+=cut

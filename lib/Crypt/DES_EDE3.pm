@@ -1,4 +1,4 @@
-# $Id: DES_EDE3.pm,v 1.1 2001/07/21 06:41:20 btrott Exp $
+# $Id: DES_EDE3.pm,v 1.2 2001/07/28 05:21:24 btrott Exp $
 
 package Crypt::DES_EDE3;
 use strict;
@@ -67,8 +67,7 @@ DES-EDE3 encryption requires a key size of 24 bytes.
 
 You're probably best off not using this module directly, as the
 I<encrypt> and I<decrypt> methods expect 8-byte blocks. You might
-want to use the module in conjunction with I<Crypt::CBC>, for example
-(or I<Convert::PEM::CBC>, since it's part of that distribution).
+want to use the module in conjunction with I<Crypt::CBC>, for example.
 This would be DES-EDE3-CBC, or triple-DES in outer CBC mode.
 
 =head1 USAGE
@@ -104,13 +103,14 @@ Returns the block size (8).
 
 Returns the key size (24).
 
+=head1 LICENSE
+
+Crypt::DES_EDE3 is free software; you may redistribute it and/or modify
+it under the same terms as Perl itself.
+
 =head1 AUTHOR & COPYRIGHTS
 
-Benjamin Trott, ben@rhumba.pair.com
-
 Except where otherwise noted, Crypt::DES_EDE3 is Copyright 2001
-Benjamin Trott. All rights reserved. Crypt::DES_EDE3 is free
-software; you may redistribute it and/or modify it under
-the same terms as Perl itself.
+Benjamin Trott, ben@rhumba.pair.com. All rights reserved.
 
 =cut

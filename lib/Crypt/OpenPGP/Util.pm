@@ -1,4 +1,4 @@
-# $Id: Util.pm,v 1.4 2001/07/26 17:49:33 btrott Exp $
+# $Id: Util.pm,v 1.5 2001/07/29 03:30:11 btrott Exp $
 
 package Crypt::OpenPGP::Util;
 use strict;
@@ -49,3 +49,52 @@ sub mod_inverse {
 }
 
 1;
+__END__
+
+=head1 NAME
+
+Crypt::OpenPGP::Util - Miscellaneous utility functions
+
+=head1 SYNOPSIS
+
+    use Crypt::OpenPGP::Util qw( func1 func2 ... );
+
+=head1 DESCRIPTION
+
+I<Crypt::OpenPGP::Util> contains a set of exportable utility functions
+used through the I<Crypt::OpenPGP> set of libraries.
+
+=head2 bitsize($n)
+
+Returns the number of bits in the I<Math::Pari> integer object
+I<$n>.
+
+=head2 bin2mp($string)
+
+Given a string I<$string> of any length, treats the string as a
+base-256 representation of an integer, and returns that integer,
+a I<Math::Pari> object.
+
+=head2 mp2bin($int)
+
+Given a biginteger I<$int> (a I<Math::Pari> object), linearizes
+the integer into an octet string, and returns the octet string.
+
+=head2 mod_exp($a, $exp, $n)
+
+Computes $a ^ $exp mod $n and returns the value. The calculations
+are done using I<Math::Pari>, and the return value is a I<Math::Pari>
+object.
+
+=head2 mod_inverse($a, $n)
+
+Computes the multiplicative inverse of $a mod $n and returns the
+value. The calculations are done using I<Math::Pari>, and the
+return value is a I<Math::Pari> object.
+
+=head1 AUTHOR & COPYRIGHTS
+
+Please see the Crypt::OpenPGP manpage for author, copyright, and
+license information.
+
+=cut

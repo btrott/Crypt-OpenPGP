@@ -1,4 +1,4 @@
-# $Id: Plaintext.pm,v 1.5 2001/07/27 05:26:08 btrott Exp $
+# $Id: Plaintext.pm,v 1.6 2001/07/29 05:27:49 btrott Exp $
 
 package Crypt::OpenPGP::Plaintext;
 use strict;
@@ -50,3 +50,73 @@ sub save {
 }
 
 1;
+__END__
+
+=head1 NAME
+
+Crypt::OpenPGP::Plaintext - A plaintext, literal-data packet
+
+=head1 SYNOPSIS
+
+    use Crypt::OpenPGP::Plaintext;
+
+    my $pt = Crypt::OpenPGP::Plaintext->new(
+                             Data     => $data,
+                             Filename => $file,
+                    );
+    my $serialized = $pt->save;
+
+    my $pt = Crypt::OpenPGP::Plaintext->parse($buffer);
+
+=head1 DESCRIPTION
+
+I<Crypt::OpenPGP::Plaintext> implements plaintext literal-data packets,
+and is essentially just a container for a string of octets, along
+with some meta-data about the plaintext.
+
+=head1 USAGE
+
+=head2 Crypt::OpenPGP::Plaintext->new( %arg )
+
+Creates a new plaintext data packet object and returns that object.
+If there are no arguments in I<%arg>, the object is created with an
+empty data container; this is used, for example, in I<parse> (below),
+to create an empty packet which is then filled from the data in the
+buffer.
+
+If you wish to initialize a non-empty object, I<%arg> can contain:
+
+=over 4
+
+=item * Data
+
+A block of octets that make up the plaintext data.
+
+This argument is required (for a non-empty object).
+
+=item * Filename
+
+The name of the file that this data came from, or the name of a file
+where it should be saved upon extraction from the packet (after
+decryption, for example, if this packet is going to be encrypted).
+
+=back
+
+=head2 $pt->save
+
+Returns the serialized form of the plaintext object, which is the
+plaintext data, preceded by some meta-data describing the data.
+
+=head2 Crypt::OpenPGP::Plaintext->parse($buffer)
+
+Given I<$buffer>, a I<Crypt::OpenPGP::Buffer> object holding (or
+with offset pointing to) a plaintext data packet, returns a new
+I<Crypt::OpenPGP::Ciphertext> object, initialized with the data
+in the buffer.
+
+=head1 AUTHOR & COPYRIGHTS
+
+Please see the Crypt::OpenPGP manpage for author, copyright, and
+license information.
+
+=cut
