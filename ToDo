@@ -1,0 +1,33 @@
+$Id: ToDo,v 1.15 2001/07/27 05:51:08 btrott Exp $
+
+Crypt::OpenPGP todo
+--------
+xx * Crypt::OpenPGP main USAGE docs
+* docs (for other classes)
+* support for CAST5, ElGamal signing
+xx * compressed packets
+* symmetrically-encrypted encrypted data packets
+xx * make find_keyblock_by_keyid work with subkeys
+xx * key generation, secret certificate saving and encrypting
+xx * Crypt::OpenPGP high-level DWIM interface
+xx * support for armouring
+xx * support for writing packets (v4 fingerprints/key IDs will come with this)
+* more support for looking up keys in keyring (eg. look up userid, etc.)
+* keyblock merging keys, signatures, user IDs
+xx * implement a KeyRing::find method that looks only for specific key IDs, etc.
+xx * generate fingerprint on cert while reading in (in 'parse'); that way we
+     don't have to reserialize
+* Crypt::OpenPGP::Plaintext::encrypt should encrypt data and return a
+  Crypt::OpenPGP::Ciphertext packet
+* improve CRC24 implementation by using C implementation. problem:
+  String::CRC does not work for me (doesn't accept init, for one thing).
+* check all errors
+* add tests for more versions of PGP, more pkalgs, more ciphers, etc.
+  to the test suite.
+* improve subpacket system: constants for types, better integration into
+  signatures, etc.
+xx * better installation: determine prereqs based on answers to prompts
+     about preferred ciphers, pk systems, etc.
+* use key flags to determine "what a key can do" (ie. signing, encryption)
+* support writing v4 packet headers
+* add some example scripts

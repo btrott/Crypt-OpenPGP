@@ -1,0 +1,102 @@
+$Id: Changes,v 1.17 2001/07/27 07:53:11 btrott Exp $
+
+Revision history for Crypt::OpenPGP
+
+0.09  2001.07.27
+    - Fixed incompatibility with PGP2: PGP2 expects packets of certain
+      types to have certain header len sizes, no matter the actual len
+      of the data. eg. all Signature packets have to have 2 len bytes,
+      even if the data is < 255 bytes long and the len would fit in
+      1 len byte. So to be compatible we need to let the object set
+      the number of len bytes, if it wants to.
+    - Plaintext packets generated in encrypt and sign will now have
+      the proper 'filename' attribute set, if the Filename param was
+      passed to the respective method.
+    - Crypt::OpenPGP::verify now handles compressed signature packets
+      properly.
+    - Version 3 signatures now default to MD5 digests for compatibility
+      with PGP2.
+    - Added tests for Crypt::OpenPGP::PacketFactory (t/05-packets.t).
+
+0.08  2001.07.26
+    - Fixed DEK encoding on encrypted session keys; the padding size
+      was incorrect, which meant that PGP5 could not recognize it
+      as a valid encoding.
+    - Added support for compressed data packets for encryption and
+      decryption. 'Compress' param controls compression when
+      encrypting, and compressed packets will be automatically
+      decompressed when decrypting.
+    - Detect and skip Marker packets in encrypted messages.
+    - Force generated RSA keys to be version 3 for compatibility with
+      PGP5, which automatically assumes that all RSA keys are version
+      3.
+    - Detect pubring.pkr and secring.skr files, thanks to Vipul for
+      the spot and patch (reworked).
+    - Fix Armour so that armoured lines are max 64 columns. Add test
+      for this case. Thanks to Vipul for spot and patch (reworked
+      slightly).
+    - Fix misc. warnings. Thanks to Vipul for spot and patch.
+    - Fix PacketFactory so that it doesn't enter deep recursion when
+      looking for specific packet types. Thanks to Vipul for the spot.
+    - Fix PARI error Util::mp2bin by casting 4*8 to PARI. Thanks to
+      Vipul for the spot and patch.
+
+0.07  2001.07.26
+    - Added key generation, in low-end Key etc. modules and in
+      high-level Crypt::OpenPGP frontend, which returns two
+      keyblocks.
+    - Added Certificate->lock to encrypt secret key data.
+    - Applied Vipul's patch to fix warnings about GNUPGHOME
+      and to add pubring.pkr and secring.skr. Thanks to Vipul.
+
+0.06  2001.07.25
+    - Fixed bug in SessionKey::_decode with using ciphers with
+      keys != 16 bytes. This caused incorrect checksums on the
+      key data.
+    - 3DES is now the default cipher (not Blowfish).
+    - Armoured keyrings (eg. PGP PUBLIC KEY BLOCK strings) are
+      now automatically unarmoured in Crypt::OpenPGP::KeyRing.
+    - Added docs for Crypt::OpenPGP, ie. the high-level DWIM
+      interface to the rest of the system.
+    - Improved speed of octet-string => integer and vice versa
+      operations. Crypt::OpenPGP::Util::bin2mp is now 3 times
+      faster than in the last release, and mp2bin is almost
+      twice as fast. Added lots more tests for these functions
+      (in 01-util.t).
+    - Changed Certificate->decrypt to Certificate->unlock.
+
+0.05  2001.07.23
+    - Started test suite: currently it tests high-level OpenPGP
+      interface using keyrings from GnuPG.
+    - Rewrote CFB implementation (now faster).
+    - Improved installation process (ask questions, check for
+      required modules, etc.).
+
+0.04  2001.07.22
+    - Added support RSA signing and verification.
+    - Added support for ElGamal encryption/decryption.
+    - Added second arg to Crypt::OpenPGP::PacketFactory::parse that
+      allows finding only specific packet types; unspecified packet
+      types are not even parsed (save the header).
+    - Added Crypt::OpenPGP::KeyRing::find_keyblock_by_keyid, which
+      looks up a keyblock by key ID, without requiring the entire
+      keyring to be parsed (just key certificates).
+    - Changed Crypt::OpenPGP methods to use find_keyblock_by_keyid
+      instead of reading in entire keyring.
+
+0.03  2001.07.20
+    - Fixed bug in un-armouring where checksum would not be picked up
+      properly if base64-encoded data had '=' at the end.
+    - Improved first crack at CRC24 implementation by using lookup
+      tables. This helps a lot.
+
+0.02  2001.07.20
+    - Added armouring in Crypt::OpenPGP::Armour.
+    - Added high-level DWIM interface to Crypt::OpenPGP.
+    - Now generate fingerprint on version 4 key certificates while
+      reading in key; since we already have the serialized data, we
+      can just generate the fingerprint using that data, rather than
+      having to serialize to get the key ID.
+
+0.01  2001.07.19
+    - Initial version.

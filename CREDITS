@@ -1,0 +1,15 @@
+$Id: CREDITS,v 1.5 2001/07/27 05:51:08 btrott Exp $
+
+In developing Crypt::OpenPGP I have received help (either direct or
+indirect) from the following individuals, who I would like to thank:
+
+* Gary Howland's original pure-Perl PGP code (part of Cryptix) was
+useful when I was planning the structure of the code, in
+implementing the CRC24 algorithm, and for the basis of the (now
+reworked) CFB code.
+
+* Vipul Ved Prakash, from whose Convert::ASCII::Armour I borrowed
+some regexen for unarmouring data, and who has helped out enormously
+with testing against various PGP releases, sending patches, etc.
+
+Benjamin Trott / ben@rhumba.pair.com

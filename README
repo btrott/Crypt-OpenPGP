@@ -1,0 +1,56 @@
+$Id: README,v 1.2 2001/07/24 04:21:32 btrott Exp $
+
+This is Crypt::OpenPGP. It provides a pure-Perl implementation of the
+OpenPGP standard, including support for all versions of PGP and
+GnuPG.
+
+PREREQUISITES
+
+Crypt::OpenPGP requires the following Perl modules:
+
+    * MIME::Base64
+    * Data::Buffer
+    * Math::Pari
+
+Depending on which symmetric ciphers you use, you will require
+at least one of the following modules:
+
+    * Crypt::DES (for 3DES)
+    * Crypt::IDEA (for IDEA)
+    * Crypt::Blowfish (for Blowfish)
+
+And depending on which public key algorithms you use, you will
+require at least one of the following modules:
+
+    * Crypt::RSA (for RSA encryption/decryption and signatures)
+    * Crypt::DSA (for DSA signatures)
+
+Note that currently ElGamal for encryption and decryption is
+provided by Crypt::OpenPGP itself; once Crypt::ElGamal is up on
+CPAN, Crypt::OpenPGP will be switched to use that support instead.
+
+INSTALLATION
+
+Crypt::OpenPGP installation is straightforward. If your cpan shell is
+set up, you should just be able to do
+
+    % perl -MCPAN -e 'install Crypt::OpenPGP'
+
+Answer the questions as to which encodings you prefer to use,
+and you'll be on your way.
+
+If you don't like that, you can download the distribution; the
+latest version on CPAN can be found in
+
+    ftp://ftp.cpan.org/pub/CPAN/authors/id/B/BT/BTROTT/
+
+Download it, unpack it, then build it as per the usual:
+
+    % perl Makefile.PL
+    % make && make test
+
+Then install it:
+
+    % make install
+
+Benjamin Trott / ben@rhumba.pair.com
