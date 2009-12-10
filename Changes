@@ -3,6 +3,10 @@ Revision history for Crypt::OpenPGP
 1.04 2009.12.10
     - Keyring lookup by uid is now case-insensitive to match the behavior
       in GnuPG. Fixes http://rt.cpan.org/Public/Bug/Display.html?id=2225
+    - Got rid of a warning in Crypt::OpenPGP::SKSessionKey related to
+      broken calculation of the session_key; that session_key value was
+      never used, so I removed the code generating the key, hence removing
+      the warning.
     - Updated to use Module::Install
     - Made all dependencies required, rather than optional based on
       feature packages. Simplifies distribution and packaging.

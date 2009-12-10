@@ -26,7 +26,6 @@ sub init {
         $sym_key = substr $sym_key, 0, $keysize;
         my $s2k_key = $key->{s2k}->generate($pass, $keysize);
         $cipher->init($s2k_key);
-        $key->{session_key} = $cipher->encrypt($key->{sym_alg} . $sym_key);
     }
     $key;
 }
@@ -52,7 +51,6 @@ sub save {
     $buf->put_int8($key->{version});
     $buf->put_int8($key->{s2k_ciph});
     $buf->put_bytes( $key->{s2k}->save );
-    #$buf->put_bytes($key->{session_key});
     $buf->bytes;
 }
 
