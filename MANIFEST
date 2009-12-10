@@ -56,7 +56,6 @@ Makefile.PL
 MANIFEST
 META.yml
 README
-SIGNATURE
 t/00-compile.t
 t/01-util.t
 t/02-buffer.t
