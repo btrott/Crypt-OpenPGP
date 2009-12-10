@@ -57,7 +57,7 @@ isa_ok $pgp, 'Crypt::OpenPGP';
     my $signer = $pgp->verify( Signature => $sig );
     ok !$signer, 'can\'t verify detached sig without datafile';
     like $pgp->errstr, qr/Reading data files failed/, 'errstr matches';
-    my $signer = $pgp->verify( Signature => $sig, Data => $text );
+    $signer = $pgp->verify( Signature => $sig, Data => $text );
     is $signer, $uid, 'verified as signed by uid';
 }
 
