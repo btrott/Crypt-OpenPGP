@@ -1,78 +1,832 @@
-$Id: README,v 1.9 2002/12/10 01:47:57 btrott Exp $
+NAME
+    Crypt::OpenPGP - Pure-Perl OpenPGP implementation
 
-This is Crypt::OpenPGP. It provides a pure-Perl implementation of the
-OpenPGP standard, including support for all versions of PGP and
-GnuPG.
+SYNOPSIS
+        my $pgp = Crypt::OpenPGP->new;
+        my $result = $pgp->handle( Data => $message_body );
 
-PREREQUISITES
+        my $signature = $pgp->sign(
+                       Filename   => $file,
+                       KeyID      => $key_id,
+                       Passphrase => $pass,
+                       Detach     => 1,
+                       Armour     => 1,
+                 );
 
-Crypt::OpenPGP requires the following Perl modules:
+        my $valid = $pgp->verify(
+                       Signature  => $signature,
+                       Files      => [ $file ],
+                 );
 
-    * MIME::Base64
-    * Data::Buffer
-    * Math::Pari
-    * Compress::Zlib
+        my $ciphertext = $pgp->encrypt(
+                       Filename   => $file,
+                       Recipients => $key_id,
+                       Armour     => 1,
+                 );
 
-Depending on which symmetric ciphers you use, you will require
-at least one of the following modules:
+        my $plaintext = $pgp->decrypt(
+                       Data       => $ciphertext,
+                       Passphrase => $pass,
+                 );
 
-    * Crypt::DES_EDE3 (for 3DES)
-    * Crypt::IDEA (for IDEA)
-    * Crypt::Blowfish (for Blowfish)
-    * Crypt::Twofish (for Twofish)
-    * Crypt::Rijndael (for Rijndael)
-    * Crypt::CAST5_PP (for CAST5)
+DESCRIPTION
+    *Crypt::OpenPGP* is a pure-Perl implementation of the OpenPGP
+    standard[1]. In addition to support for the standard itself,
+    *Crypt::OpenPGP* claims compatibility with many other PGP
+    implementations, both those that support the standard and those that
+    preceded it.
 
-Depending on which digest algorithms you use, you will require at
-least one of the following modules:
+    *Crypt::OpenPGP* provides signing/verification, encryption/decryption,
+    keyring management, and key-pair generation; in short it should provide
+    you with everything you need to PGP-enable yourself. Alternatively it
+    can be used as part of a larger system; for example, perhaps you have a
+    web-form-to-email generator written in Perl, and you'd like to encrypt
+    outgoing messages, because they contain sensitive information.
+    *Crypt::OpenPGP* can be plugged into such a scenario, given your public
+    key, and told to encrypt all messages; they will then be readable only
+    by you.
 
-    * Digest::MD5 (for MD5)
-    * Digest::SHA1 (for SHA-1)
-    * Crypt::RIPEMD160 (for RIPE-MD/160)
+    This module currently supports "RSA" and "DSA" for digital signatures,
+    and "RSA" and "ElGamal" for encryption/decryption. It supports the
+    symmetric ciphers "3DES", "Blowfish", "IDEA", "Twofish", "CAST5", and
+    "Rijndael" ("AES"). "Rijndael" is supported for key sizes of 128, 192,
+    and 256 bits. *Crypt::OpenPGP* supports the digest algorithms "MD5",
+    "SHA-1", and "RIPE-MD/160". And it supports "ZIP" and "Zlib"
+    compression.
 
-Depending on which public key algorithms you use, you will
-require at least one of the following modules:
+COMPATIBILITY
+    One of the highest priorities for *Crypt::OpenPGP* is compatibility with
+    other PGP implementations, including PGP implementations that existed
+    before the OpenPGP standard.
 
-    * Crypt::RSA (for RSA encryption/decryption and signatures)
-    * Crypt::DSA (for DSA signatures)
+    As a means towards that end, some of the high-level *Crypt::OpenPGP*
+    methods can be used in compatibility mode; given an argument *Compat*
+    and a PGP implementation with which they should be compatible, these
+    method will do their best to choose ciphers, digest algorithms, etc.
+    that are compatible with that implementation. For example, PGP2 only
+    supports "IDEA" encryption, "MD5" digests, and version 3 signature
+    formats; if you tell *Crypt::OpenPGP* that it must be compatible with
+    PGP2, it will only use these algorithms/formats when encrypting and
+    signing data.
 
-Note that currently ElGamal for encryption and decryption is
-provided by Crypt::OpenPGP itself; once Crypt::ElGamal is up on
-CPAN, Crypt::OpenPGP will be switched to use that support instead.
+    To use this feature, supply either *sign* or *encrypt* with the *Compat*
+    parameter, giving it one of the values from the list below. For example:
 
-INSTALLATION
+        my $ct = $pgp->encrypt(
+                      Compat     => 'PGP2',
+                      Filename   => 'foo.pl',
+                      Recipients => $key_id,
+                 );
 
-Crypt::OpenPGP installation is straightforward. If your cpan shell is
-set up, you should just be able to do
+    Because *PGP2* was specified, the data will automatically be encrypted
+    using the "IDEA" cipher, and will be compressed using "ZIP".
 
-    % perl -MCPAN -e 'install Crypt::OpenPGP'
+    Here is a list of the current compatibility sets and the algorithms and
+    formats they support.
 
-Answer the questions as to which ciphers/publickey algorithms you prefer
-to use, and you'll be on your way.
+    *   PGP2
 
-If you don't like that, you can download the distribution; the
-latest version on CPAN can be found in
+        Encryption: symmetric cipher = "IDEA", compression = "ZIP",
+        modification detection code (MDC) = 0
 
-    ftp://ftp.cpan.org/pub/CPAN/authors/id/B/BT/BTROTT/
+        Signing: digest = "MD5", packet format = version 3
 
-Download it, unpack it, then build it as per the usual:
+    *   PGP5
 
-    % perl Makefile.PL
-    % make && make test
+        Encryption: symmetric cipher = "3DES", compression = "ZIP",
+        modification detection code (MDC) = 0
 
-Then install it:
+        Signing: digest = "SHA-1", packet format = version 3
 
-    % make install
+    *   GnuPG
+
+        Encryption: symmetric cipher = "Rijndael", compression = "Zlib",
+        modification detection code (MDC) = 1
+
+        Signing: digest = "RIPE-MD/160", packet format = version 4
+
+    If the compatibility setting is unspecified (that is, if no *Compat*
+    argument is supplied), the settings (ciphers, digests, etc.) fall back
+    to their default settings.
+
+USAGE
+    *Crypt::OpenPGP* has the following high-level interface. On failure, all
+    methods will return "undef" and set the *errstr* for the object; look
+    below at the *ERROR HANDLING* section for more information.
+
+  Crypt::OpenPGP->new( %args )
+    Constructs a new *Crypt::OpenPGP* instance and returns that object.
+    Returns "undef" on failure.
+
+    *%args* can contain:
+
+    *   Compat
+
+        The compatibility mode for this *Crypt::OpenPGP* object. This value
+        will propagate down into method calls upon this object, meaning that
+        it will be applied for all method calls invoked on this object. For
+        example, if you set *Compat* here, you do not have to set it again
+        when calling *encrypt* or *sign* (below), unless, of course, you
+        want to set *Compat* to a different value for those methods.
+
+        *Compat* influences several factors upon object creation, unless
+        otherwise overridden in the constructor arguments: if you have a
+        configuration file for this compatibility mode (eg. ~/.gnupg/options
+        for GnuPG), it will be automatically read in, and *Crypt::OpenPGP*
+        will set any options relevant to its execution (symmetric cipher
+        algorithm, etc.); *PubRing* and *SecRing* (below) are set according
+        to the default values for this compatibility mode (eg.
+        ~/.gnupg/pubring.gpg for the GnuPG public keyring).
+
+    *   SecRing
+
+        Path to your secret keyring. If unspecified, *Crypt::OpenPGP* will
+        look for your keyring in a number of default places.
+
+        As an alternative to passing in a path to the keyring file, you can
+        pass in a *Crypt::OpenPGP::KeyRing* object representing a secret
+        keyring.
+
+    *   PubRing
+
+        Path to your public keyring. If unspecified, *Crypt::OpenPGP* will
+        look for your keyring in a number of default places.
+
+        As an alternative to passing in a path to the keyring file, you can
+        pass in a *Crypt::OpenPGP::KeyRing* object representing a public
+        keyring.
+
+    *   ConfigFile
+
+        Path to a PGP/GnuPG config file. If specified, you must also pass in
+        a value for the *Compat* parameter, stating what format config file
+        you are passing in. For example, if you are passing in the path to a
+        GnuPG config file, you should give a value of "GnuPG" for the
+        *Compat* flag.
+
+        If you leave *ConfigFile* unspecified, but you have specified a
+        value for *Compat*, *Crypt::OpenPGP* will try to find your config
+        file, based on the value of *Compat* that you pass in (eg.
+        ~/.gnupg/options if *Compat* is "GnuPG").
+
+        NOTE: if you do not specify a *Compat* flag, *Crypt::OpenPGP* cannot
+        read any configuration files, even if you *have* specified a value
+        for the *ConfigFile* parameter, because it will not be able to
+        determine the proper config file format.
+
+    *   KeyServer
+
+        The hostname of the HKP keyserver. You can get a list of keyservers
+        through
+
+            % host -l pgp.net | grep wwwkeys
+
+        If *AutoKeyRetrieve* is set to a true value, keys will be
+        automatically retrieved from the keyserver if they are not found in
+        your local keyring.
+
+    *   AutoKeyRetrieve
+
+        If set to a true value, and if *KeyServer* is set to a keyserver
+        name, *encrypt* and *verify* will automatically try to fetch public
+        keys from the keyserver if they are not found in your local keyring.
+
+  $pgp->handle( %args )
+    A do-what-I-mean wrapper around *decrypt* and *verify*. Given either a
+    filename or a block of data--for example, data from an incoming email
+    message--*handle* "handles" it as appropriate for whatever encryption or
+    signing the message contains. For example, if the data is encrypted,
+    *handle* will return the decrypted data (after prompting you for the
+    passphrase). If the data is signed, *handle* will check the validity of
+    the signature and return indication of the validity of the signature.
+
+    The return value is a reference to a hash, which may contain the
+    following keys, depending on the data passed to the method:
+
+    *   Plaintext
+
+        If the data is encrypted, the decrypted message.
+
+    *   Validity
+
+        If the data is signed, a true value if the signature is valid, a
+        false value otherwise. The true value will be either the signer's
+        email address, if available, or 1, if not.
+
+    *   Signature
+
+        If the data is signed, the *Crypt::OpenPGP::Signature* object
+        representing the signature.
+
+    If an error occurs, the return value will be "undef", and the error
+    message can be obtained by calling *errstr* on the *Crypt::OpenPGP*
+    object.
+
+    *%args* can contain:
+
+    *   Data
+
+        The data to be "handled". This should be a simple scalar containing
+        an arbitrary amount of data.
+
+        *Data* is optional; if unspecified, you should specify a filename
+        (see *Filename*, below).
+
+    *   Filename
+
+        The path to a file to "handle".
+
+        *Filename* is optional; if unspecified, you should specify the data
+        in *Data*, above. If both *Data* and *Filename* are specified, the
+        data in *Data* overrides that in *Filename*.
+
+    *   PassphraseCallback
+
+        If the data is encrypted, you will need to supply *handle* with the
+        proper passphrase to unlock the private key, or the password to
+        decrypt the symmetrically-encrypted data (depending on the method of
+        encryption used). If you do not specify this parameter, this default
+        passphrase callback will be used:
+
+            sub _default_passphrase_cb {
+                my($cert) = @_;
+                my $prompt;
+                if ($cert) {
+                    $prompt = sprintf qq(
+            You need a passphrase to unlock the secret key for
+            user "%s".
+            %d-bit %s key, ID %s
+    
+            Enter passphrase: ), $cert->uid,
+                                 $cert->key->size,
+                                 $cert->key->alg,
+                                 substr($cert->key_id_hex, -8, 8);
+                } else {
+                    $prompt = "Enter passphrase: ";
+                }
+                _prompt($prompt, '', 1);
+            }
+
+        If you do specify this parameter, make sure that your callback
+        function can handle both asymmetric and symmetric encryption.
+
+        See the *PassphraseCallback* parameter for *decrypt*, below.
+
+  $pgp->encrypt( %args )
+    Encrypts a block of data. The encryption is actually done with a
+    symmetric cipher; the key for the symmetric cipher is then encrypted
+    with either the public key of the recipient or using a passphrase that
+    you enter. The former case is using public-key cryptography, the latter,
+    standard symmetric ciphers. In the first case, the session key can only
+    be unlocked by someone with the corresponding secret key; in the second,
+    it can only be unlocked by someone who knows the passphrase.
+
+    Given the parameter *SignKeyID* (see below), *encrypt* will first sign
+    the message before encrypting it, adding a Signature packet to the
+    encrypted plaintext.
+
+    Returns a block of data containing two PGP packets: the encrypted
+    symmetric key and the encrypted data.
+
+    On failure returns "undef".
+
+    *%args* can contain:
+
+    *   Compat
+
+        Specifies the PGP compatibility setting. See *COMPATIBILITY*, above.
+
+    *   Data
+
+        The plaintext to be encrypted. This should be a simple scalar
+        containing an arbitrary amount of data.
+
+        *Data* is optional; if unspecified, you should specify a filename
+        (see *Filename*, below).
+
+    *   Filename
+
+        The path to a file to encrypt.
+
+        *Filename* is optional; if unspecified, you should specify the data
+        in *Data*, above. If both *Data* and *Filename* are specified, the
+        data in *Data* overrides that in *Filename*.
+
+    *   Recipients
+
+        The intended recipients of the encrypted message. In other words,
+        either the key IDs or user IDs of the public keys that should be
+        used to encrypt the message. Each recipient specified should be
+        either a key ID--an 8-digit or 16-digit hexadecimal number--or part
+        of a user ID that can be used to look up the user's public key in
+        your keyring. Examples:
+
+            8-digit hex key ID: 123ABC45
+            16-digit hex key ID: 678DEF90123ABC45
+            (Part of) User ID: foo@bar
+
+        Note that the 8-digit hex key ID is the last 8 digits of the (long)
+        16-digit hex key ID.
+
+        If you wish to encrypt the message for multiple recipients, the
+        value of *Recipients* should be a reference to a list of recipients
+        (as defined above). For each recipient in the list, the public key
+        will be looked up in your public keyring, and an encrypted session
+        key packet will be added to the encrypted message.
+
+        This argument is optional; if not provided you should provide the
+        *Passphrase* option (below) to perform symmetric-key encryption when
+        encrypting the session key.
+
+    *   KeyID
+
+        A deprecated alias for *Recipients* (above). There is no need to use
+        *KeyID*, as its functionality has been completely subsumed into the
+        *Recipients* parameter.
+
+    *   Passphrase
+
+        The mechanism to use symmetric-key, or "conventional", encryption,
+        when encrypting the session key. In other words, this allows you to
+        use *Crypt::OpenPGP* for encryption/decryption without using
+        public-key cryptography; this can be useful in certain circumstances
+        (for example, when encrypting data locally on disk).
+
+        This argument is optional; if not provided you should provide the
+        *Recipients* option (above) to perform public-key encryption when
+        encrypting the session key.
+
+    *   RecipientsCallback
+
+        After the list of recipients for a message (as given in
+        *Recipients*, above) has been mapped into a set of keys from your
+        public keyring, you can use *RecipientsCallback* to review/modify
+        that list of keys. The value of *RecipientsCallback* should be a
+        reference to a subroutine; when invoked that routine will be handed
+        a reference to an array of *Crypt::OpenPGP::Certificate* objects. It
+        should then return a reference to a list of such objects.
+
+        This can be useful particularly when supplying user IDs in the list
+        of *Recipients* for an encrypted message. Since user IDs are looked
+        up using partial matches (eg. *b* could match *b*, *abc*, *bar*,
+        etc.), one intended recipient may actually turn up multiple keys.
+        You can use *RecipientsCallback* to audit that list before actually
+        encrypting the message:
+
+            my %BAD_KEYS = (
+                ABCDEF1234567890 => 1,
+                1234567890ABCDEF => 1,
+            );
+            my $cb = sub {
+                my $keys = shift;
+                my @return;
+                for my $cert (@$keys) {
+                    push @return, $cert unless $BAD_KEYS{ $cert->key_id_hex };
+                }
+                \@returns;
+            };
+            my $ct = $pgp->encrypt( ..., RecipientsCallback => $cb, ... );
+
+    *   Cipher
+
+        The name of a symmetric cipher with which the plaintext will be
+        encrypted. Valid arguments are "DES3", "CAST5", "Blowfish", "IDEA",
+        "Twofish", "Rijndael", "Rijndael192", and "Rijndael256" (the last
+        two are "Rijndael" with key sizes of 192 and 256 bits,
+        respectively).
+
+        This argument is optional; if you have provided a *Compat*
+        parameter, *Crypt::OpenPGP* will use the appropriate cipher for the
+        supplied compatibility mode. Otherwise, *Crypt::OpenPGP* currently
+        defaults to "DES3"; this could change in the future.
+
+    *   Compress
+
+        The name of a compression algorithm with which the plaintext will be
+        compressed before it is encrypted. Valid values are "ZIP" and
+        "Zlib".
+
+        By default text is not compressed.
+
+    *   Armour
+
+        If true, the data returned from *encrypt* will be ASCII-armoured.
+        This can be useful when you need to send data through email, for
+        example.
+
+        By default the returned data is not armoured.
+
+    *   SignKeyID
+
+        If you wish to sign the plaintext message before encrypting it,
+        provide *encrypt* with the *SignKeyID* parameter and give it a key
+        ID with which the message can be signed. This allows recipients of
+        your message to verify its validity.
+
+        By default messages not signed.
+
+    *   SignPassphrase
+
+        The passphrase to unlock the secret key to be used when signing the
+        message.
+
+        If you are signing the message--that is, if you have provided the
+        *SignKeyID* parameter--either this argument or
+        *SignPassphraseCallback* is required.
+
+    *   SignPassphraseCallback
+
+        The callback routine to enable the passphrase being passed in
+        through some user-defined routine. See the *PassphraseCallback*
+        parameter for *sign*, below.
+
+        If you are signing the message--that is, if you have provided the
+        *SignKeyID* parameter--either this argument or *SignPassphrase* is
+        required.
+
+    *   MDC
+
+        When set to a true value, instructs *encrypt* to use encrypted MDC
+        (modification detection code) packets instead of standard encrypted
+        data packets. These are a newer form of encrypted data packets that
+        are followed by a "SHA-1" hash of the plaintext data. This prevents
+        attacks that modify the encrypted text by using a message digest to
+        detect changes.
+
+        By default *MDC* is set to 0, and *encrypt* generates standard
+        encrypted data packets. Set it to a true value to turn on MDC
+        packets. Note that *MDC* will automatically be turned on if you are
+        using a *Compat* mode that is known to support it.
+
+  $pgp->decrypt( %args )
+    Decrypts a block of ciphertext. The ciphertext should be of the sort
+    returned from *encrypt*, in either armoured or non-armoured form. This
+    is compatible with all other implementations of PGP: the output of their
+    encryption should serves as the input to this method.
+
+    When called in scalar context, returns the plaintext (that is, the
+    decrypted ciphertext), or "undef" on failure. When called in list
+    context, returns a three-element list containing the plaintext and the
+    result of signature verification (see next paragraph), or the empty list
+    on failure. Either of the failure conditions listed here indicates that
+    decryption failed.
+
+    If *decrypt* is called in list context, and the encrypted text contains
+    a signature over the plaintext, *decrypt* will attempt to verify the
+    signature and will return the result of that verification as the second
+    element in the return list, and the actual *Crypt::OpenPGP::Signature*
+    object as the third element in the return list. If you call *decrypt* in
+    list context and the ciphertext does *not* contain a signature, that
+    second element will be "undef", and the *errstr* will be set to the
+    string "No Signature\n". The second element in the return list can have
+    one of three possible values: "undef", meaning that either an error
+    occurred in verifying the signature, *or* the ciphertext did not contain
+    a signature; 0, meaning that the signature is invalid; or a true value
+    of either the signer's user ID or 1, if the user ID cannot be
+    determined. Note that these are the same values returned from *verify*
+    (below).
+
+    For example, to decrypt a message that may contain a signature that you
+    want verified, you might use code like this:
+
+        my($pt, $valid, $sig) = $pgp->decrypt( ... );
+        die "Decryption failed: ", $pgp->errstr unless $pt;
+        die "Signature verification failed: ", $pgp->errstr
+            unless defined $valid || $pgp->errstr !~ /^No Signature/;
+        print "Signature created at ", $sig->timestamp, "\n";
+
+    This checks for errors in decryption, as well as errors in signature
+    verification, excluding the error denoting that the plaintext was not
+    signed.
+
+    *%args* can contain:
+
+    *   Data
+
+        The ciphertext to be decrypted. This should be a simple scalar
+        containing an arbitrary amount of data.
+
+        *Data* is optional; if unspecified, you should specify a filename
+        (see *Filename*, below).
+
+    *   Filename
+
+        The path to a file to decrypt.
+
+        *Filename* is optional; if unspecified, you should specify the data
+        in *Data*, above. If both *Data* and *Filename* are specified, the
+        data in *Data* overrides that in *Filename*.
+
+    *   Passphrase
+
+        The passphrase to unlock your secret key, or to decrypt a
+        symmetrically-encrypted message; the usage depends on how the
+        message is encrypted.
+
+        This argument is optional if your secret key is protected; if not
+        provided you should supply the *PassphraseCallback* parameter
+        (below).
+
+    *   PassphraseCallback
+
+        A callback routine to allow interactive users (for example) to enter
+        the passphrase for the specific key being used to decrypt the
+        ciphertext, or the passphrase used to encrypt a
+        symmetrically-encrypted message. This is useful when your ciphertext
+        is encrypted to several recipients, if you do not necessarily know
+        ahead of time the secret key that will be used to decrypt it. It is
+        also useful when you wish to provide an interactive user with some
+        feedback about the key being used to decrypt the message, or when
+        you don't know what type of encryption (symmetric or public-key)
+        will be used to encrypt a message.
+
+        The value of this parameter should be a reference to a subroutine.
+        This routine will be called when a passphrase is needed from the
+        user, and it will be given either zero arguments or one argument,
+        depending on whether the message is encrypted symmetrically (zero
+        arguments) or using public-key encryption (one argument). If the
+        latter, the one argument is a *Crypt::OpenPGP::Certificate* object
+        representing the secret key. You can use the information in this
+        object to present details about the key to the user.
+
+        In either case, the callback routine should return the passphrase, a
+        scalar string.
+
+        Your callback routine can use the number of arguments to determine
+        how to prompt the user for a passphrase; for example:
+
+            sub passphrase_cb {
+                if (my $cert = $_[0]) {
+                    printf "Enter passphrase for secret key %s: ",
+                        $cert->key_id_hex;
+                } else {
+                    print "Enter passphrase: ";
+                }
+            }
+
+        This argument is optional if your secret key is protected; if not
+        provided you should supply the *Passphrase* parameter (above).
+
+  $pgp->sign( %args )
+    Creates and returns a digital signature on a block of data.
+
+    On failure returns "undef".
+
+    *%args* can contain:
+
+    *   Compat
+
+        Specifies the PGP compatibility setting. See *COMPATIBILITY*, above.
+
+    *   Data
+
+        The text to be signed. This should be a simple scalar containing an
+        arbitrary amount of data.
+
+        *Data* is optional; if unspecified, you should specify a filename
+        (see *Filename*, below).
+
+    *   Filename
+
+        The path to a file to sign.
+
+        *Filename* is optional; if unspecified, you should specify the data
+        in *Data*, above. If both *Data* and *Filename* are specified, the
+        data in *Data* overrides that in *Filename*.
+
+    *   Detach
+
+        If set to a true value the signature created will be a detached
+        signature; that is, a signature that does not contain the original
+        text. This assumes that the person who will be verifying the
+        signature can somehow obtain the original text (for example, if you
+        sign the text of an email message, the original text is the
+        message).
+
+        By default signatures are not detached.
+
+    *   Armour
+
+        If true, the data returned from *sign* will be ASCII-armoured. This
+        can be useful when you need to send data through email, for example.
+
+        By default the returned signature is not armoured.
+
+    *   Clearsign
+
+        If true, the signature created on the data is a clear-text
+        signature. This form of signature displays the clear text of the
+        signed data, followed by the ASCII-armoured signature on that data.
+        Such a format is desirable when sending signed messages to groups of
+        users who may or may not have PGP, because it allows the text of the
+        message to be readable without special software.
+
+        When *Clearsign* is set to true, *Armour* and *Detach* are
+        automatically turned on, because the signature created is a
+        detached, armoured signature.
+
+        By default *Clearsign* is false.
+
+    *   KeyID
+
+        The ID of the secret key that should be used to sign the message.
+        The value of the key ID should be specified as a 16-digit
+        hexadecimal number.
+
+        This argument is mandatory.
+
+    *   Passphrase
+
+        The passphrase to unlock your secret key.
+
+        This argument is optional if your secret key is protected; if not
+        provided you should supply the *PassphraseCallback* parameter
+        (below).
+
+    *   PassphraseCallback
+
+        A callback routine to allow interactive users (for example) to enter
+        the passphrase for the specific key being used to sign the message.
+        This is useful when you wish to provide an interactive user with
+        some feedback about the key being used to sign the message.
+
+        The value of this parameter should be a reference to a subroutine.
+        This routine will be called when a passphrase is needed from the
+        user, and it will be given one argument: a
+        *Crypt::OpenPGP::Certificate* object representing the secret key.
+        You can use the information in this object to present details about
+        the key to the user. The callback routine should return the
+        passphrase, a scalar string.
+
+        This argument is optional if your secret key is protected; if not
+        provided you should supply the *Passphrase* parameter (above).
+
+    *   Digest
+
+        The digest algorithm to use when creating the signature; the data to
+        be signed is hashed by a message digest algorithm, then signed.
+        Possible values are "MD5", "SHA1", and "RIPEMD160".
+
+        This argument is optional; if not provided, the digest algorithm
+        will be set based on the *Compat* setting provided to *sign* or
+        *new*. If you have not provided a *Compat* setting, *SHA1* will be
+        used.
+
+    *   Version
+
+        The format version of the created signature. The two possible values
+        are 3 and 4; version 4 signatures will not be compatible with older
+        PGP implementations.
+
+        The default value is 4, although this could change in the future.
+
+  $pgp->verify( %args )
+    Verifies a digital signature. Returns true for a valid signature, 0 for
+    an invalid signature, and "undef" if an error occurs (in which case you
+    should call *errstr* to determine the source of the error). The 'true'
+    value returned for a successful signature will be, if available, the PGP
+    User ID of the person who created the signature. If that value is
+    unavailable, the return value will be 1.
+
+    If called in list context, the second element returned in the return
+    list will be the *Crypt::OpenPGP::Signature* object representing the
+    actual signature.
+
+    *%args* can contain:
+
+    *   Signature
+
+        The signature data, as returned from *sign*. This data can be either
+        a detached signature or a non-detached signature. If the former, you
+        will need to specify the list of files comprising the original
+        signed data (see *Data* or *Files*, below).
+
+        Either this argument or *SigFile* is required.
+
+    *   SigFile
+
+        The path to a file containing the signature data. This data can be
+        either a detached signature or a non-detached signature. If the
+        former, you will need to specify the list of files comprising the
+        original signed data (see *Data* or *Files*, below).
+
+        Either this argument or *SigFile* is required.
+
+    *   Data
+
+        Specifies the original signed data.
+
+        If the signature (in either *Signature* or *SigFile*) is a detached
+        signature, either *Data* or *Files* is a mandatory argument.
+
+    *   Files
+
+        Specifies a list of files comprising the original signed data. The
+        value should be a reference to a list of file paths; if there is
+        only one file, the value can be specified as a scalar string, rather
+        than a reference to a list.
+
+        If the signature (in either *Signature* or *SigFile*) is a detached
+        signature, either *Data* or *Files* is a mandatory argument.
+
+  $pgp->keygen( %args )
+    NOTE: this interface is alpha and could change in future releases!
+
+    Generates a public/secret PGP keypair. Returns two keyblocks (objects of
+    type *Crypt::OpenPGP::KeyBlock*), a public and a secret keyblock,
+    respectively. A keyblock is essentially a block of keys, subkeys,
+    signatures, and user ID PGP packets.
+
+    *%args* can contain:
+
+    *   Type
+
+        The type of key to generate. Currently there are two valid values:
+        "RSA" and "DSA". "ElGamal" key generation is not supported at the
+        moment.
+
+        This is a required argument.
+
+    *   Size
+
+        Bitsize of the key to be generated. This should be an even integer;
+        there is no low end currently implemented in *Crypt::OpenPGP*, but
+        for the sake of security *Size* should be at least 1024 bits.
+
+        This is a required argument.
+
+    *   Identity
+
+        A string that identifies the owner of the key. Typically this is the
+        combination of the user's name and an email address; for example,
+
+            Foo Bar <foo@bar.com>
+
+        The *Identity* is used to build a User ID packet that is stored in
+        each of the returned keyblocks.
+
+        This is a required argument.
+
+    *   Passphrase
+
+        String with which the secret key will be encrypted. When read in
+        from disk, the key can then only be unlocked using this string.
+
+        This is a required argument.
+
+    *   Version
+
+        Specifies the key version; defaults to version 4 keys. You should
+        only set this to version 3 if you know why you are doing so (for
+        backwards compatibility, most likely). Version 3 keys only support
+        RSA.
+
+    *   Verbosity
+
+        Set to a true value to enable a status display during key
+        generation; since key generation is a relatively lengthy process, it
+        is helpful to have an indication that some action is occurring.
+
+        *Verbosity* is 0 by default.
+
+ERROR HANDLING
+    If an error occurs in any of the above methods, the method will return
+    "undef". You should then call the method *errstr* to determine the
+    source of the error:
+
+        $pgp->errstr
+
+    In the case that you do not yet have a *Crypt::OpenPGP* object (that is,
+    if an error occurs while creating a *Crypt::OpenPGP* object), the error
+    can be obtained as a class method:
+
+        Crypt::OpenPGP->errstr
+
+    For example, if you try to decrypt some encrypted text, and you do not
+    give a passphrase to unlock your secret key:
+
+        my $pt = $pgp->decrypt( Filename => "encrypted_data" )
+            or die "Decryption failed: ", $pgp->errstr;
 
 SAMPLES/TUTORIALS
+    Take a look at bin/pgplet for an example of usage of *Crypt::OpenPGP*.
+    It gives you an example of using the four main major methods (*encrypt*,
+    *sign*, *decrypt*, and *verify*), as well as the various parameters to
+    those methods. It also demonstrates usage of the callback parameters
+    (eg. *PassphraseCallback*).
 
-Take a look at bin/pgplet for an example of usage of Crypt::OpenPGP.
-It gives you an example of using the four main major methods (encrypt,
-sign, decrypt, and verify), as well as the various parameters to those
-methods. It also demonstrates usage of the callback parameters (eg.
-PassphraseCallback).
+    bin/pgplet currently does not have any documentation, but its interface
+    mirrors that of *gpg*.
 
-bin/pgplet currently does not have any documentation, but its interface
-mirrors that of gpg.
+LICENSE
+    Crypt::OpenPGP is free software; you may redistribute it and/or modify
+    it under the same terms as Perl itself.
 
-Benjamin Trott / cpan@stupidfool.org
+AUTHOR & COPYRIGHT
+    Except where otherwise noted, Crypt::OpenPGP is Copyright 2001 Benjamin
+    Trott, cpan@stupidfool.org. All rights reserved.
+
+REFERENCES
+    1 RFC2440 - OpenPGP Message Format (1998).
+    http://www.faqs.org/rfcs/rfc2440.html
+

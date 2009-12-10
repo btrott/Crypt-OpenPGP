@@ -2,6 +2,7 @@
 
 package Crypt::OpenPGP;
 use strict;
+use 5.008_001;
 
 use vars qw( $VERSION );
 $VERSION = '1.03';
