@@ -1,5 +1,5 @@
 use strict;
-use Test::More tests => 18;
+use Test::More tests => 21;
 use Test::Exception;
 
 use_ok 'Crypt::OpenPGP::KeyRing';
@@ -53,4 +53,11 @@ is $kb->key->key_id, $packed_key_id, 'found the right key by last-4 bytes';
 $kb = $ring->find_keyblock_by_uid( $uid );
 isa_ok $kb, 'Crypt::OpenPGP::KeyBlock';
 is $kb->key->key_id, $packed_key_id, 'found the right key by uid';
+is $kb->primary_uid, $uid, 'primary_uid matches';
+
+# lookup by uid should be case insensitive.
+$kb = $ring->find_keyblock_by_uid( uc $uid );
+isa_ok $kb, 'Crypt::OpenPGP::KeyBlock';
+is $kb->key->key_id, $packed_key_id,
+    'found the right key by upper-cased uid';
 is $kb->primary_uid, $uid, 'primary_uid matches';

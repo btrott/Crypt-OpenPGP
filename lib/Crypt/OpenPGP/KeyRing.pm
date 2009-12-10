@@ -99,7 +99,7 @@ sub find_keyblock_by_keyid {
 sub find_keyblock_by_uid {
     my $ring = shift;
     my($uid) = @_;
-    $ring->find_keyblock(sub { $_[0]->id =~ /$uid/ },
+    $ring->find_keyblock(sub { $_[0]->id =~ /$uid/i },
         [ PGP_PKT_USER_ID ], 1 );
 }
 

@@ -1,6 +1,8 @@
 Revision history for Crypt::OpenPGP
 
 1.04 2009.12.10
+    - Keyring lookup by uid is now case-insensitive to match the behavior
+      in GnuPG. Fixes http://rt.cpan.org/Public/Bug/Display.html?id=2225
     - Updated to use Module::Install
     - Made all dependencies required, rather than optional based on
       feature packages. Simplifies distribution and packaging.
