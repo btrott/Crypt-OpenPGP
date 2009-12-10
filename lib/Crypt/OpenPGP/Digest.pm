@@ -1,5 +1,3 @@
-# $Id: Digest.pm,v 1.6 2002/12/10 01:43:55 btrott Exp $
-
 package Crypt::OpenPGP::Digest;
 use strict;
 

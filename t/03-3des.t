@@ -1,5 +1,3 @@
-# $Id: 03-3des.t,v 1.3 2001/08/10 04:15:12 btrott Exp $
-
 use strict;
 
 use Test;

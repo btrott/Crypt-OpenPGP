@@ -1,6 +1,11 @@
-$Id: Changes,v 1.68 2002/12/10 01:48:30 btrott Exp $
-
 Revision history for Crypt::OpenPGP
+
+1.04 2009.12.10
+    - Updated to use Module::Install
+    - Made all dependencies required, rather than optional based on
+      feature packages. Simplifies distribution and packaging.
+    - Removed sign() and auto_install() from Makefile.PL.
+    - Removed magic svn keywords.
 
 1.03 2002.12.09
     - Makefile.PL now uses ExtUtils::AutoInstall. Thanks to Autrijus Tang

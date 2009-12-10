@@ -1,5 +1,3 @@
-# $Id: MDC.pm,v 1.2 2001/08/09 18:57:24 btrott Exp $
-
 package Crypt::OpenPGP::MDC;
 use strict;
 

@@ -1,5 +1,3 @@
-# $Id: SubPacket.pm,v 1.2 2001/07/21 06:54:31 btrott Exp $
-
 package Crypt::OpenPGP::Signature::SubPacket;
 use strict;
 

@@ -1,5 +1,3 @@
-# $Id: 08-compress.t,v 1.1 2001/08/09 19:08:01 btrott Exp $
-
 use Test;
 use Crypt::OpenPGP::Compressed;
 use strict;

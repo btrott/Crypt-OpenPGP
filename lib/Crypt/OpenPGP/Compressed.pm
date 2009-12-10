@@ -1,5 +1,3 @@
-# $Id: Compressed.pm,v 1.6 2001/08/09 18:13:10 btrott Exp $
-
 package Crypt::OpenPGP::Compressed;
 use strict;
 

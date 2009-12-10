@@ -1,5 +1,3 @@
-# $Id: Trust.pm,v 1.3 2001/07/29 06:34:29 btrott Exp $
-
 package Crypt::OpenPGP::Trust;
 use strict;
 

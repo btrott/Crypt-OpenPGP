@@ -1,5 +1,3 @@
-# $Id: SessionKey.pm,v 1.12 2002/07/15 07:07:30 btrott Exp $
-
 package Crypt::OpenPGP::SessionKey;
 use strict;
 

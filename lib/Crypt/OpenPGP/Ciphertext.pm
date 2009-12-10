@@ -1,5 +1,3 @@
-# $Id: Ciphertext.pm,v 1.16 2002/07/15 07:07:30 btrott Exp $
-
 package Crypt::OpenPGP::Ciphertext;
 use strict;
 

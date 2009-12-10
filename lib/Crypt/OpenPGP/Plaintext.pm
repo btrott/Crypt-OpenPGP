@@ -1,5 +1,3 @@
-# $Id: Plaintext.pm,v 1.7 2001/07/29 17:08:56 btrott Exp $
-
 package Crypt::OpenPGP::Plaintext;
 use strict;
 

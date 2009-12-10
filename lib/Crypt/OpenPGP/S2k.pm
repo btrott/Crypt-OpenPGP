@@ -1,5 +1,3 @@
-# $Id: S2k.pm,v 1.9 2002/10/12 18:49:19 btrott Exp $
-
 package Crypt::OpenPGP::S2k;
 use strict;
 

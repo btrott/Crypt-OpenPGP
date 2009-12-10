@@ -1,5 +1,3 @@
-# $Id: ElGamal.pm,v 1.8 2002/10/12 18:49:30 btrott Exp $
-
 package Crypt::OpenPGP::Key::Public::ElGamal;
 use strict;
 

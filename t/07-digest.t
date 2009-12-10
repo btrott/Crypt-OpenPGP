@@ -1,5 +1,3 @@
-# $Id: 07-digest.t,v 1.2 2002/05/07 04:04:55 btrott Exp $
-
 use Test;
 use Crypt::OpenPGP::Digest;
 use strict;

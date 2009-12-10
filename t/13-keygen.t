@@ -1,5 +1,3 @@
-# $Id: 13-keygen.t,v 1.6 2002/02/09 18:32:58 btrott Exp $
-
 use Test;
 use Crypt::OpenPGP;
 use Crypt::OpenPGP::Message;

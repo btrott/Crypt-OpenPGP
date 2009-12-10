@@ -1,5 +1,3 @@
-# $Id: 05-packets.t,v 1.3 2001/07/28 07:58:06 btrott Exp $
-
 use Test;
 use strict;
 use Crypt::OpenPGP::PacketFactory;

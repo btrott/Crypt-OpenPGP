@@ -1,5 +1,3 @@
-# $Id: OnePassSig.pm,v 1.4 2001/07/29 17:42:59 btrott Exp $
-
 package Crypt::OpenPGP::OnePassSig;
 use strict;
 

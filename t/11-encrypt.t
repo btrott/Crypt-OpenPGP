@@ -1,5 +1,3 @@
-# $Id: 11-encrypt.t,v 1.13 2002/09/05 23:50:50 btrott Exp $
-
 use Test;
 use Crypt::OpenPGP;
 use Crypt::OpenPGP::Message;

@@ -1,5 +1,3 @@
-# $Id: Words.pm,v 1.2 2001/08/10 06:24:04 btrott Exp $
-
 package Crypt::OpenPGP::Words;
 use strict;
 

@@ -1,5 +1,3 @@
-# $Id: 02-buffer.t,v 1.1 2001/07/24 07:38:03 btrott Exp $
-
 use strict;
 
 use Test;

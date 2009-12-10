@@ -1,5 +1,3 @@
-# $Id: PacketFactory.pm,v 1.19 2001/08/09 05:35:56 btrott Exp $
-
 package Crypt::OpenPGP::PacketFactory;
 use strict;
 

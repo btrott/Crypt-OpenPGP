@@ -77,4 +77,6 @@ t/samples/gpg/ring.pub
 t/samples/gpg/ring.sec
 t/samples/message.asc
 t/test-common.pl
-ToDo
+xt/perlcritic.t
+xt/pod.t
+xt/synopsis.t

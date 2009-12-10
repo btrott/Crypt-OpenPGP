@@ -1,5 +1,3 @@
-# $Id: OpenPGP.pm,v 1.90 2002/12/10 01:43:00 btrott Exp $
-
 package Crypt::OpenPGP;
 use strict;
 use 5.008_001;

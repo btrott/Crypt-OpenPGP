@@ -1,5 +1,3 @@
-# $Id: UserID.pm,v 1.6 2001/08/09 18:57:07 btrott Exp $
-
 package Crypt::OpenPGP::UserID;
 use strict;
 

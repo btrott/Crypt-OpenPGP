@@ -1,5 +1,3 @@
-# $Id: DSA.pm,v 1.8 2001/08/13 01:18:20 btrott Exp $
-
 package Crypt::OpenPGP::Key::Public::DSA;
 use strict;
 

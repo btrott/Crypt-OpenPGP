@@ -1,5 +1,3 @@
-# $Id: test-common.pl,v 1.1 2001/07/24 07:38:36 btrott Exp $
-
 use vars qw( $BASE $SAMPLES );
 
 use Cwd;

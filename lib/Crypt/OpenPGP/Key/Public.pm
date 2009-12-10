@@ -1,5 +1,3 @@
-# $Id: Public.pm,v 1.3 2001/07/21 06:54:28 btrott Exp $
-
 package Crypt::OpenPGP::Key::Public;
 use strict;
 

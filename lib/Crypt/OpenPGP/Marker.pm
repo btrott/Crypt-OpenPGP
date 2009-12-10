@@ -1,5 +1,3 @@
-# $Id: Marker.pm,v 1.2 2001/07/29 04:26:05 btrott Exp $
-
 package Crypt::OpenPGP::Marker;
 use strict;
 

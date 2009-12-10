@@ -1,5 +1,3 @@
-# $Id: Message.pm,v 1.12 2002/12/10 01:47:26 btrott Exp $
-
 package Crypt::OpenPGP::Message;
 use strict;
 

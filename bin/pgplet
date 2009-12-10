@@ -1,9 +1,8 @@
 #!/usr/bin/perl -w
-# $Id: pgplet,v 1.15 2002/12/10 01:42:39 btrott Exp $
+use strict;
 
 use lib 'lib';
 
-use strict;
 use Term::ReadKey;
 use Getopt::Long;
 use Crypt::OpenPGP;

@@ -1,5 +1,3 @@
-# $Id: Signature.pm,v 1.18 2002/10/12 22:02:29 btrott Exp $
-
 package Crypt::OpenPGP::Signature;
 use strict;
 

@@ -1,5 +1,3 @@
-# $Id: 06-cipher.t,v 1.4 2001/08/29 18:10:11 btrott Exp $
-
 use Test;
 use Crypt::OpenPGP::Cipher;
 use strict;

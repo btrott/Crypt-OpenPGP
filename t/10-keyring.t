@@ -1,5 +1,3 @@
-# $Id: 10-keyring.t,v 1.5 2001/08/06 03:39:34 btrott Exp $
-
 use Test;
 use Crypt::OpenPGP::KeyRing;
 use strict;

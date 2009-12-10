@@ -1,5 +1,3 @@
-# $Id: 01-util.t,v 1.3 2001/07/29 03:28:26 btrott Exp $
-
 use strict;
 
 use Test;

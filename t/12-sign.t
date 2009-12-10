@@ -1,5 +1,3 @@
-# $Id: 12-sign.t,v 1.6 2001/08/29 21:31:01 btrott Exp $
-
 use Test;
 use Crypt::OpenPGP;
 use strict;

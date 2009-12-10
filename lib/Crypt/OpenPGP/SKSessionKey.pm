@@ -1,5 +1,3 @@
-# $Id: SKSessionKey.pm,v 1.1 2001/07/29 13:21:06 btrott Exp $
-
 package Crypt::OpenPGP::SKSessionKey;
 use strict;
 

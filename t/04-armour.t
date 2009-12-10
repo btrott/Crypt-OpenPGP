@@ -1,5 +1,3 @@
-# $Id: 04-armour.t,v 1.4 2002/01/29 02:33:05 btrott Exp $
-
 use Test;
 use Crypt::OpenPGP::Armour;
 use Crypt::OpenPGP;

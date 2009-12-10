@@ -1,5 +1,3 @@
-# $Id: RSA.pm,v 1.10 2001/08/13 01:18:20 btrott Exp $
-
 package Crypt::OpenPGP::Key::Public::RSA;
 use strict;
 

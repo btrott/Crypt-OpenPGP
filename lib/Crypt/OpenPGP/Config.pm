@@ -1,5 +1,3 @@
-# $Id: Config.pm,v 1.6 2002/07/12 23:53:25 btrott Exp $
-
 package Crypt::OpenPGP::Config;
 use strict;
 

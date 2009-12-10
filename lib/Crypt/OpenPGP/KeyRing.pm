@@ -1,5 +1,3 @@
-# $Id: KeyRing.pm,v 1.19 2002/01/29 01:19:46 btrott Exp $
-
 package Crypt::OpenPGP::KeyRing;
 use strict;
 

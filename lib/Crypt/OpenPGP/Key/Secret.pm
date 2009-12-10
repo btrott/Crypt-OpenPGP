@@ -1,5 +1,3 @@
-# $Id: Secret.pm,v 1.3 2001/08/09 04:26:33 btrott Exp $
-
 package Crypt::OpenPGP::Key::Secret;
 use strict;
 

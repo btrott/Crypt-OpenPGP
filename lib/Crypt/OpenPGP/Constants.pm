@@ -1,5 +1,3 @@
-# $Id: Constants.pm,v 1.7 2001/08/09 04:28:57 btrott Exp $
-
 package Crypt::OpenPGP::Constants;
 use strict;
 

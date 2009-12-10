@@ -1,5 +1,3 @@
-# $Id: Cipher.pm,v 1.19 2002/12/10 01:43:55 btrott Exp $
-
 package Crypt::OpenPGP::Cipher;
 use strict;
 

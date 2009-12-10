@@ -1,5 +1,3 @@
-# $Id: Util.pm,v 1.9 2002/07/12 23:52:33 btrott Exp $
-
 package Crypt::OpenPGP::Util;
 use strict;
 

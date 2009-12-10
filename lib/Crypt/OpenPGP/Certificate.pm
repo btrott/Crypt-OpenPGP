@@ -1,5 +1,3 @@
-# $Id: Certificate.pm,v 1.19 2002/09/05 23:49:21 btrott Exp $
-
 package Crypt::OpenPGP::Certificate;
 use strict;
 

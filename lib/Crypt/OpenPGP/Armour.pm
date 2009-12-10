@@ -1,5 +1,3 @@
-# $Id: Armour.pm,v 1.10 2002/01/29 01:19:55 btrott Exp $
-
 package Crypt::OpenPGP::Armour;
 use strict;
 

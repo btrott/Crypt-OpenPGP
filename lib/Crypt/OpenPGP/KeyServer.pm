@@ -1,5 +1,3 @@
-# $Id: KeyServer.pm,v 1.1 2002/07/15 05:54:09 btrott Exp $
-
 package Crypt::OpenPGP::KeyServer;
 use strict;
 

@@ -1,5 +1,3 @@
-# $Id: ErrorHandler.pm,v 1.5 2001/07/28 22:37:16 btrott Exp $
-
 package Crypt::OpenPGP::ErrorHandler;
 use strict;
 

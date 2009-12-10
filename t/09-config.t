@@ -1,5 +1,3 @@
-# $Id: 09-config.t,v 1.1 2001/08/30 04:19:27 btrott Exp $
-
 use Test;
 use Crypt::OpenPGP;
 use Crypt::OpenPGP::Config;
