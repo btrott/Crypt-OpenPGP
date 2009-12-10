@@ -1,9 +1,8 @@
-use Test;
+use strict;
+use Test::More tests => 28;
+
 use Crypt::OpenPGP;
 use Crypt::OpenPGP::Message;
-use strict;
-
-BEGIN { plan tests => 28 }
 
 my $id = 'Black Francis <frank@black.com>';
 my $pass = 'foobar';
@@ -12,40 +11,42 @@ my $pgp = Crypt::OpenPGP->new;
 
 my $bits = 512;
 
-## 1024 bits was taking too long, and since this is just a test,
-## it wasn't necessary; we're testing the same functionality
-## no matter the key size.
+for my $type ( qw( RSA DSA ) ) {
+    diag $type;
 
-#for my $bits (qw( 512 1024 )) {
-    for my $type (qw( RSA DSA )) {
-        my($pub, $sec) = $pgp->keygen(
-                            Type       => $type,
-                            Size       => $bits,
-                            Passphrase => $pass,
-                            Identity   => $id,
-                 );
-        ok($pub);
-        ok($sec);
-        ok($pub->key);
-        ok($sec->key);
-        ok($pub->key->key_id, $sec->key->key_id);
-        ok($pub->primary_uid, $id);
-        ok($pub->key->key->size, $bits);
-        ok($sec->key->key->size, $bits);
+    my( $pub, $sec ) = $pgp->keygen(
+        Type        => $type,
+        Size        => $bits,
+        Passphrase  => $pass,
+        Identity    => $id,
+    );
+    isa_ok $pub, 'Crypt::OpenPGP::KeyBlock';
+    isa_ok $sec, 'Crypt::OpenPGP::KeyBlock';
+    
+    isa_ok $pub->key, 'Crypt::OpenPGP::Certificate';
+    isa_ok $sec->key, 'Crypt::OpenPGP::Certificate';
 
-        my $uid = $pub->get('Crypt::OpenPGP::UserID')->[0];
-        my $sig = $pub->get('Crypt::OpenPGP::Signature')->[0];
-        my $dgst = $sig->hash_data($pub->key, $uid);
-        ok($pub->key->key->verify($sig, $dgst));
+    is $pub->key->key_id, $sec->key->key_id,
+        'public key_id matches secret key_id';
 
-        my $saved = $pub->save;
-        my $msg = Crypt::OpenPGP::Message->new( Data => $saved );
-        ok($msg);
-        my @pieces = $msg->pieces;
-        ok(ref($pieces[0]), 'Crypt::OpenPGP::Certificate');
-        ok(ref($pieces[1]), 'Crypt::OpenPGP::UserID');
-        ok(ref($pieces[2]), 'Crypt::OpenPGP::Signature');
+    is $pub->primary_uid, $id, 'primary_uid matches';
 
-        ok($pieces[0]->key_id, $sec->key->key_id);
-    }
-#}
+    is $pub->key->key->size, $bits, 'keysize (in bits) matches for pubkey';
+    is $sec->key->key->size, $bits, 'keysize (in bits) matches for seckey';
+
+    my $uid = $pub->get( 'Crypt::OpenPGP::UserID' )->[0];
+    my $sig = $pub->get( 'Crypt::OpenPGP::Signature' )->[0];
+    my $dgst = $sig->hash_data( $pub->key, $uid );
+    ok $pub->key->key->verify( $sig, $dgst ), 'self-signature verifies';
+
+    my $saved = $pub->save;
+    my $msg = Crypt::OpenPGP::Message->new( Data => $saved );
+    isa_ok $msg, 'Crypt::OpenPGP::Message';
+    my @pieces = $msg->pieces;
+    isa_ok $pieces[0], 'Crypt::OpenPGP::Certificate';
+    isa_ok $pieces[1], 'Crypt::OpenPGP::UserID';
+    isa_ok $pieces[2], 'Crypt::OpenPGP::Signature';
+
+    is $pieces[0]->key_id, $sec->key->key_id,
+        'serialized public key_id matches secret key_id';
+}

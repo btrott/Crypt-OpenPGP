@@ -1,67 +1,73 @@
-use Test;
+use strict;
+use Test::More tests => 20;
+use Test::Exception;
+
 use Crypt::OpenPGP;
 use Crypt::OpenPGP::Config;
-use strict;
-
-BEGIN { plan tests => 20 };
 
 use vars qw( $SAMPLES );
 unshift @INC, 't/';
 require 'test-common.pl';
 use File::Spec;
 
-my($cfg_file, $cfg, $pgp);
+{
+    diag 'GnuPG config';
 
-### TEST GNUPG CONFIG
-$cfg_file = File::Spec->catfile($SAMPLES, 'cfg.gnupg');
+    my $cfg_file = File::Spec->catfile( $SAMPLES, 'cfg.gnupg' );
 
-$cfg = Crypt::OpenPGP::Config->new;
-ok($cfg);
-ok( $cfg->read_config('GnuPG', $cfg_file) );
+    my $cfg = Crypt::OpenPGP::Config->new;
+    isa_ok $cfg, 'Crypt::OpenPGP::Config';
+    lives_ok { $cfg->read_config( 'GnuPG', $cfg_file ) }
+        'can read GnuPG config file';
 
-## Test standard str directive
-ok($cfg->get('Digest'), 'MD5');
-$cfg->set('Digest', 'SHA1');
-ok($cfg->get('Digest'), 'SHA1');
+    # Test standard str directive
+    is $cfg->get( 'Digest' ), 'MD5', 'Digest == MD5';
+    $cfg->set( 'Digest', 'SHA1' );
+    is $cfg->get( 'Digest' ), 'SHA1', 'Digest == SHA1';
 
-## Test standard bool directive, no arg (eg. 'armor')
-ok($cfg->get('Armour'), 1);
-$cfg->set('Armour', 0);
-ok($cfg->get('Armour'), 0);
+    # Test standard bool directive, no arg (eg. 'armor')
+    is $cfg->get( 'Armour' ), 1, 'Armour == 1';
+    $cfg->set( 'Armour', 0 );
+    is $cfg->get( 'Armour' ), 0, 'Armour == 0';
 
-## Test special Cipher directive (eg. 'cipher-alg TWOFISH')
-ok($cfg->get('Cipher'), 'Twofish');
+    # Test special Cipher directive (eg. 'cipher-algo TWOFISH')
+    is $cfg->get( 'Cipher' ), 'Twofish', 'cipher-algo -> Cipher';
 
-## Test special Compress directive
-ok($cfg->get('Compress'), 'Zlib');
+    # Test special Compress directive
+    is $cfg->get( 'Compress' ), 'Zlib', 'compress-algo -> Compress';
 
-## Test that config file gets read correctly when passed to
-## constructor.
-$pgp = Crypt::OpenPGP->new( ConfigFile => $cfg_file, Compat => 'GnuPG' );
-ok($pgp);
-ok($pgp->{cfg});
-ok($pgp->{cfg}->get('Armour'), 1);
+    # Test that config file gets read correctly when passed to
+    # constructor.
+    my $pgp = Crypt::OpenPGP->new( ConfigFile => $cfg_file, Compat => 'GnuPG' );
+    isa_ok $pgp, 'Crypt::OpenPGP';
+    isa_ok $pgp->{cfg}, 'Crypt::OpenPGP::Config';
+    is $pgp->{cfg}->get( 'Armour' ), 1, 'Armour == 1';
+}
 
-### TEST PGP2 CONFIG
-$cfg_file = File::Spec->catfile($SAMPLES, 'cfg.pgp2');
+{
+    diag 'pgp2 config';
 
-$cfg = Crypt::OpenPGP::Config->new;
-ok($cfg);
-ok( $cfg->read_config('PGP2', $cfg_file) );
+    my $cfg_file = File::Spec->catfile( $SAMPLES, 'cfg.pgp2' );
 
-## Test standard str directive
-ok($cfg->get('PubRing'), 'foo.pubring');
-$cfg->set('PubRing', 'bar.pubring');
-ok($cfg->get('PubRing'), 'bar.pubring');
+    my $cfg = Crypt::OpenPGP::Config->new;
+    isa_ok $cfg, 'Crypt::OpenPGP::Config';
+    lives_ok { $cfg->read_config( 'PGP2', $cfg_file ) }
+        'can read pgp2 config file';
 
-## Test standard bool directive, with arg (eg. 'Armor on')
-ok($cfg->get('Armour'), 1);
-$cfg->set('Armour', 0);
-ok($cfg->get('Armour'), 0);
+    # Test standard str directive
+    is $cfg->get( 'PubRing' ), 'foo.pubring', 'Pubring == foo.pubring';
+    $cfg->set( 'PubRing', 'bar.pubring' );
+    is $cfg->get( 'PubRing' ), 'bar.pubring', 'Pubring == bar.pubring';
 
-## Test that config file gets read correctly when passed to
-## constructor.
-$pgp = Crypt::OpenPGP->new( ConfigFile => $cfg_file, Compat => 'PGP2' );
-ok($pgp);
-ok($pgp->{cfg});
-ok($pgp->{cfg}->get('Armour'), 1);
+    # Test standard bool directive, with arg (eg. 'Armor on')
+    is $cfg->get( 'Armour' ), 1, 'Armour == 1';
+    $cfg->set( 'Armour', 0 );
+    is $cfg->get( 'Armour' ), 0, 'Armour == 0';
+
+    # Test that config file gets read correctly when passed to
+    # constructor.
+    my $pgp = Crypt::OpenPGP->new( ConfigFile => $cfg_file, Compat => 'PGP2' );
+    isa_ok $pgp, 'Crypt::OpenPGP';
+    isa_ok $pgp->{cfg}, 'Crypt::OpenPGP::Config';
+    is $pgp->{cfg}->get( 'Armour' ), 1, 'Armour == 1';
+}

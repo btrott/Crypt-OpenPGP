@@ -1,6 +1,7 @@
-use Test;
-use Crypt::OpenPGP::Digest;
 use strict;
+use Test::More;
+
+use Crypt::OpenPGP::Digest;
 
 my %TESTDATA = (
     1 => [ 16, '6abb1d8ca3f00772440701359a8b2fcf' ],
@@ -37,12 +38,13 @@ BEGIN {
     plan tests => $num_tests;
 }
 
-for my $did (sort { $a <=> $b } keys %TESTS) {
-    my $digest = Crypt::OpenPGP::Digest->new($did);
-    ok($digest);
-    ok($digest->alg, $TESTS{$did});
-    ok($digest->alg_id, $did);
-    my $hash = $digest->hash($data);
-    ok(length($hash), $TESTDATA{$did}[0]);
-    ok($hash, pack 'H*', $TESTDATA{$did}[1]);
+for my $did ( sort { $a <=> $b } keys %TESTS ) {
+    diag $TESTS{ $did };
+    my $digest = Crypt::OpenPGP::Digest->new( $did );
+    isa_ok $digest, 'Crypt::OpenPGP::Digest';
+    is $digest->alg, $TESTS{ $did }, 'algorithm name matches';
+    is $digest->alg_id, $did, 'algorithm id matches';
+    my $hash = $digest->hash( $data );
+    is length( $hash ), $TESTDATA{ $did }[0], 'length of digest matches';
+    is $hash, pack( 'H*', $TESTDATA{$did}[1] ), 'digest data matches';
 }

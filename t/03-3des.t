@@ -1,39 +1,32 @@
 use strict;
+use Test::More;
 
-use Test;
-
-BEGIN {
-    eval "use Crypt::OpenPGP::CFB; use Crypt::DES_EDE3;";
-    if ($@) {
-        print "1..0 skipping\n";
-        exit;
-    }
-
-    plan tests => 8;
+eval "use Crypt::OpenPGP::CFB; use Crypt::DES_EDE3";
+if ( $@ ) {
+    plan skip_all => 'test requires DES-EDE3 installed';
 }
 
-my $KEY = pack "H64", ("0123456789ABCDEF" x 4);
+plan tests => 5;
 
-my($des1, $des2);
+my $KEY = pack "H64", ( "0123456789ABCDEF" x 4 );
 
-$des1 = Crypt::DES_EDE3->new($KEY);
-ok($des1);
-ok($des1->keysize, 24);
+my( $des1, $des2 );
 
-$des2 = Crypt::DES_EDE3->new($KEY);
-ok($des2);
+$des1 = Crypt::DES_EDE3->new( $KEY );
+isa_ok $des1, 'Crypt::DES_EDE3';
+is $des1->keysize, 24, 'keysize is 24 bytes';
 
-my($enc, $dec);
-$enc = $des1->encrypt( _checkbytes() );
-ok($enc);
-$dec = $des2->decrypt($enc);
-ok($dec);
+$des2 = Crypt::DES_EDE3->new( $KEY );
+isa_ok $des2, 'Crypt::DES_EDE3';
 
-ok( vec($dec, 0, 8) == vec($dec, 2, 8) );
-ok( vec($dec, 1, 8) == vec($dec, 3, 8) );
-ok( vec($dec, 5, 8) == 0 );
+my( $enc, $dec );
+my $check_bytes = _checkbytes();
+$enc = $des1->encrypt( $check_bytes );
+ok $enc, 'ciphertext is defined';
+$dec = $des2->decrypt( $enc );
+is $dec, $check_bytes, 'decrypted matches plaintext';
 
 sub _checkbytes {
-    my($check1, $check2) = (chr int rand 255, chr int rand 255);
-    "$check1$check2$check1$check2\0\0\0\0";
+    my( $check1, $check2 ) = ( chr int rand 255, chr int rand 255 );
+    return "$check1$check2$check1$check2\0\0\0\0";
 }

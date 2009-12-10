@@ -30,7 +30,9 @@ requires 'Crypt::RIPEMD160';
 requires 'Crypt::Blowfish';
 requires 'Crypt::Twofish';
 
-build_requires 'Test::More';
+test_requires 'Test::More';
+test_requires 'Test::Exception';
+
 use_test_base;
 auto_include_deps;
 author_tests('xt');

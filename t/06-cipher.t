@@ -1,9 +1,10 @@
-use Test;
-use Crypt::OpenPGP::Cipher;
 use strict;
+use Test::More;
 
-my $KEY = pack "H64", ("0123456789ABCDEF" x 8);
-my $PASS = pack "H16", ("0123456789ABCDEF");
+use Crypt::OpenPGP::Cipher;
+
+my $KEY = pack "H64", ( "0123456789ABCDEF" x 8 );
+my $PASS = pack "H16", ( "0123456789ABCDEF" );
 
 my $data = <<'TEXT';
 I 'T' them, 24:7, all year long
@@ -19,10 +20,10 @@ BEGIN {
     %TESTS = %Crypt::OpenPGP::Cipher::ALG;
 
     my $num_tests = 0;
-    for my $cid (keys %TESTS) {
-        my $cipher = Crypt::OpenPGP::Cipher->new($cid);
+    for my $cid ( keys %TESTS ) {
+        my $cipher = Crypt::OpenPGP::Cipher->new( $cid );
         if ($cipher) {
-            $num_tests += 9;
+            $num_tests += 7;
         } else {
             delete $TESTS{$cid};
         }
@@ -31,23 +32,27 @@ BEGIN {
     plan tests => $num_tests;
 }
 
-for my $cid (keys %TESTS) {
-    my $ciph1 = Crypt::OpenPGP::Cipher->new($cid, $KEY);
-    ok($ciph1);
-    ok($ciph1->alg, $TESTS{$cid});
-    ok($ciph1->alg_id, $cid);
-    ok($ciph1->blocksize, $ciph1->{cipher}{cipher}->blocksize);
-    my $ciph2 = Crypt::OpenPGP::Cipher->new($cid, $KEY);
-    ok($ciph2);
-    my($enc, $dec);
-    $enc = $ciph1->encrypt(_checkbytes());
-    $dec = $ciph2->decrypt($enc);
-    ok(vec($dec, 0, 8) == vec($dec, 2, 8));
-    ok(vec($dec, 1, 8) == vec($dec, 3, 8));
+for my $cid ( keys %TESTS ) {
+    diag $TESTS{ $cid };
 
-    $enc = $ciph1->encrypt($data);
-    ok($enc);
-    ok($ciph2->decrypt($enc), $data);
+    my $ciph1 = Crypt::OpenPGP::Cipher->new( $cid, $KEY );
+    isa_ok $ciph1, 'Crypt::OpenPGP::Cipher';
+    is $ciph1->alg, $TESTS{ $cid }, 'alg matches';
+    is $ciph1->alg_id, $cid, 'alg_id matches';
+    is $ciph1->blocksize, $ciph1->{cipher}{cipher}->blocksize,
+        'reported blocksize is correct';
+
+    my $ciph2 = Crypt::OpenPGP::Cipher->new( $cid, $KEY );
+    isa_ok $ciph2, 'Crypt::OpenPGP::Cipher';
+
+    my( $enc, $dec );
+    my $check_bytes = _checkbytes();
+    $enc = $ciph1->encrypt( $check_bytes);
+    $dec = $ciph2->decrypt( $enc );
+    is $dec, $check_bytes, 'decrypting encrypted check-bytes yields original';
+
+    is $ciph2->decrypt( $ciph1->encrypt( $data ) ), $data,
+        'decrypting encrypted data yields original';
 }
 
 sub _checkbytes {
