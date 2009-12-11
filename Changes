@@ -13,6 +13,8 @@ Revision history for Crypt::OpenPGP
     - Removed sign() and auto_install() from Makefile.PL.
     - Removed magic svn keywords.
     - Converted test suite to Test::More.
+    - Added author tests (xt/) and modified SYNOPSIS for all modules to
+      make them pass the compilation test.
 
 1.03 2002.12.09
     - Makefile.PL now uses ExtUtils::AutoInstall. Thanks to Autrijus Tang
