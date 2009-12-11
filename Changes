@@ -6,10 +6,12 @@ Revision history for Crypt::OpenPGP
     - Got rid of a warning in Crypt::OpenPGP::SKSessionKey related to
       broken calculation of the session_key; that session_key value was
       never used, so I removed the code generating the key, hence removing
-      the warning.
+      the warning. Addresses
+      http://rt.cpan.org/Public/Bug/Display.html?id=29950
     - Updated to use Module::Install
     - Made all dependencies required, rather than optional based on
-      feature packages. Simplifies distribution and packaging.
+      feature packages. Simplifies distribution and packaging, and addresses
+      http://rt.cpan.org/Public/Bug/Display.html?id=41426
     - Removed sign() and auto_install() from Makefile.PL.
     - Removed magic svn keywords.
     - Converted test suite to Test::More.
