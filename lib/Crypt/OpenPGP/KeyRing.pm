@@ -176,6 +176,7 @@ Crypt::OpenPGP::KeyRing - Key ring object
 
     my $ring = Crypt::OpenPGP::KeyRing->new( Filename => 'foo.ring' );
 
+    my $key_id = '...';
     my $kb = $ring->find_keyblock_by_keyid($key_id);
 
 =head1 DESCRIPTION

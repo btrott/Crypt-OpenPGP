@@ -370,15 +370,16 @@ Crypt::OpenPGP::Certificate - PGP Key certificate
 
     use Crypt::OpenPGP::Certificate;
 
+    my $dsa_secret_key = Crypt::OpenPGP::Key::Secret->new( 'DSA' );
     my $cert = Crypt::OpenPGP::Certificate->new(
-                            Key => $dsa_secret_key,
-                            Version => 4,
-                            Passphrase => 'foobar',
-                   );
+        Key => $dsa_secret_key,
+        Version => 4,
+        Passphrase => 'foobar',
+    );
     my $serialized = $cert->save;
 
-    my $cert = Crypt::OpenPGP::Certificate->parse($buffer);
-    $cert->unlock('foobar');
+    # Unlock the locked certificate (using the passphrase from above)
+    $cert->unlock( 'foobar' );
 
 =head1 DESCRIPTION
 

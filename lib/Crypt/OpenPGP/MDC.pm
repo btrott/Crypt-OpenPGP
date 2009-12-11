@@ -47,9 +47,6 @@ Crypt::OpenPGP::MDC - MDC (modification detection code) packet
     my $digest = $mdc->digest;
     my $serialized = $mdc->save;
 
-    my $mdc = Crypt::OpenPGP::MDC->parse($buffer);
-    my $digest = $mdc->digest;
-
 =head1 DESCRIPTION
 
 I<Crypt::OpenPGP::MDC> is a PGP MDC (modification detection code) packet.

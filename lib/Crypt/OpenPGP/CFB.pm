@@ -78,12 +78,14 @@ Crypt::OpenPGP::CFB - PGP Cipher Feedback Mode
 
     use Crypt::OpenPGP::CFB;
 
-    my $cipher = Crypt::Blowfish->new($key);   ## for example
-    my $cfb = Crypt::OpenPGP::CFB->new($cipher, $iv);
+    my $key = 'foo bar';
+    my $cipher = Crypt::Blowfish->new( $key );   # for example
+    my $cfb = Crypt::OpenPGP::CFB->new( $cipher );
 
-    my $ct = $cfb->encrypt($plaintext);
+    my $plaintext = 'this is secret!';
+    my $ct = $cfb->encrypt( $plaintext );
 
-    my $pt = $cfb->decrypt($ct);
+    my $pt = $cfb->decrypt( $ct );
 
 =head1 DESCRIPTION
 

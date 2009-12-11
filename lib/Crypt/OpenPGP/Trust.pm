@@ -21,11 +21,6 @@ __END__
 
 Crypt::OpenPGP::Trust - PGP Trust packet
 
-=head1 SYNOPSIS
-
-    use Crypt::OpenPGP::Trust;
-    my $trust = Crypt::OpenPGP::Trust->parse($buffer);
-
 =head1 DESCRIPTION
 
 I<Crypt::OpenPGP::Trust> is a PGP Trust packet. From the OpenPGP

@@ -185,8 +185,14 @@ Crypt::OpenPGP::S2k - String-to-key generation
 
     use Crypt::OpenPGP::S2k;
 
-    my $s2k = Crypt::OpenPGP::S2k->new('Salt_Iter');
-    my $key = $s2k->generate($passphrase, $keysize);
+    # S2k generates an encryption key from a passphrase; in order to
+    # understand how large of a key to generate, we need to know which
+    # cipher we're using, and what the passphrase is.
+    my $cipher = Crypt::OpenPGP::Cipher->new( '...' );
+    my $passphrase = 'foo';
+
+    my $s2k = Crypt::OpenPGP::S2k->new( 'Salt_Iter' );
+    my $key = $s2k->generate( $passphrase, $cipher->keysize );
 
     my $serialized = $s2k->save;
 

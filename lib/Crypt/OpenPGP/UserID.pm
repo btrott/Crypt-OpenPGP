@@ -42,8 +42,6 @@ Crypt::OpenPGP::UserID - PGP User ID packet
 
     my $uid = Crypt::OpenPGP::UserID->new( Identity => 'Foo' );
     my $serialized = $uid->save;
-
-    my $uid = Crypt::OpenPGP::UserID->parse($buffer);
     my $identity = $uid->id;
 
 =head1 DESCRIPTION

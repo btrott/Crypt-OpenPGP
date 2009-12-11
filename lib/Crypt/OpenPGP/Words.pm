@@ -172,6 +172,7 @@ Crypt::OpenPGP::Words - Create English-word encodings
 =head1 SYNOPSIS
 
     use Crypt::OpenPGP::Words;
+    my $cert = Crypt::OpenPGP::Certificate->new;
     my @words = Crypt::OpenPGP::Words->encode( $cert->fingerprint );
 
 =head1 DESCRIPTION

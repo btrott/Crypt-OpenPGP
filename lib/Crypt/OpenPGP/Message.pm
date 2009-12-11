@@ -87,7 +87,8 @@ Crypt::OpenPGP::Message - Sequence of PGP packets
 
     use Crypt::OpenPGP::Message;
 
-    my $msg = Crypt::OpenPGP::Message->new( Data => $packets );
+    my $data; $data .= $_ while <STDIN>;
+    my $msg = Crypt::OpenPGP::Message->new( Data => $data );
     my @pieces = $msg->pieces;
 
 =head1 DESCRIPTION

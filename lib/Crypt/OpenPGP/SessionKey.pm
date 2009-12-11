@@ -122,16 +122,17 @@ Crypt::OpenPGP::SessionKey - Encrypted Session Key
 
     use Crypt::OpenPGP::SessionKey;
 
+    my $public_key = Crypt::OpenPGP::Key::Public->new( 'RSA' );
     my $key_data = 'f' x 64;    ## Not a very good key :)
 
     my $skey = Crypt::OpenPGP::SessionKey->new(
-                            Key => $public_key,
-                            SymKey => $key_data,
-                    );
+        Key     => $public_key,
+        SymKey  => $key_data,
+    );
     my $serialized = $skey->save;
 
-    my $skey = Crypt::OpenPGP::SessionKey->parse($buffer);
-    my($key_data, $alg) = $skey->decrypt($secret_key);
+    my $secret_key = Crypt::OpenPGP::Key::Secret->new( 'RSA' );
+    ( $key_data, my( $alg ) ) = $skey->decrypt( $secret_key );
 
 =head1 DESCRIPTION
 
@@ -156,7 +157,7 @@ If you wish to initialize a non-empty object, I<%arg> can contain:
 =item * Key
 
 A public key object; in other words, an object of a subclass of
-I<Crypt::OpenPGP::Key::Public>. The public key is used to encrypt the
+I<Crypt::OpenPGP::Key::Private>. The public key is used to encrypt the
 encoded session key such that it can only be decrypted by the secret
 portion of the key.
 

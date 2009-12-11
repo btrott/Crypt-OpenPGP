@@ -59,13 +59,14 @@ Crypt::OpenPGP::Plaintext - A plaintext, literal-data packet
 
     use Crypt::OpenPGP::Plaintext;
 
+    my $data = 'foo bar';
+    my $file = 'foo.txt';
+
     my $pt = Crypt::OpenPGP::Plaintext->new(
                              Data     => $data,
                              Filename => $file,
                     );
     my $serialized = $pt->save;
-
-    my $pt = Crypt::OpenPGP::Plaintext->parse($buffer);
 
 =head1 DESCRIPTION
 

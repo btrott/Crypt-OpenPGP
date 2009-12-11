@@ -784,31 +784,46 @@ Crypt::OpenPGP - Pure-Perl OpenPGP implementation
 =head1 SYNOPSIS
 
     my $pgp = Crypt::OpenPGP->new;
+
+    # Given an input stream (could be a signature, ciphertext, etc),
+    # do the "right thing" to it.
+    my $message_body; $message_body .= $_ while <STDIN>;
     my $result = $pgp->handle( Data => $message_body );
 
+    # Create a detached, ASCII-armoured signature of $file using the
+    # secret key $key_id, protected with the passphrase $pass. 
+    my $file = 'really-from-me.txt';
+    my $key_id = '...';
+    my $pass = 'foo bar';
     my $signature = $pgp->sign(
-                   Filename   => $file,
-                   KeyID      => $key_id,
-                   Passphrase => $pass,
-                   Detach     => 1,
-                   Armour     => 1,
-             );
+        Filename   => $file,
+        KeyID      => $key_id,
+        Passphrase => $pass,
+        Detach     => 1,
+        Armour     => 1,
+    );
 
-    my $valid = $pgp->verify(
-                   Signature  => $signature,
-                   Files      => [ $file ],
-             );
+    # Verify the detached signature $signature, which should be of the
+    # source file $file.
+    my $is_valid = $pgp->verify(
+        Signature  => $signature,
+        Files      => [ $file ],
+    );
 
+    # Using the public key associated with $key_id, encrypt the contents
+    # of the file $file, and ASCII-armour the ciphertext.
     my $ciphertext = $pgp->encrypt(
-                   Filename   => $file,
-                   Recipients => $key_id,
-                   Armour     => 1,
-             );
+        Filename   => $file,
+        Recipients => $key_id,
+        Armour     => 1,
+    );
 
+    # Decrypt $ciphertext using the secret key used to encrypt it,
+    # which key is protected with the passphrase $pass.
     my $plaintext = $pgp->decrypt(
-                   Data       => $ciphertext,
-                   Passphrase => $pass,
-             );
+        Data       => $ciphertext,
+        Passphrase => $pass,
+    );
 
 =head1 DESCRIPTION
 

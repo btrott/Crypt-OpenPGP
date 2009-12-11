@@ -83,10 +83,6 @@ __END__
 
 Crypt::OpenPGP::Util - Miscellaneous utility functions
 
-=head1 SYNOPSIS
-
-    use Crypt::OpenPGP::Util qw( func1 func2 ... );
-
 =head1 DESCRIPTION
 
 I<Crypt::OpenPGP::Util> contains a set of exportable utility functions

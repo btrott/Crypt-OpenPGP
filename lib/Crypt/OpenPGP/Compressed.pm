@@ -102,11 +102,9 @@ Crypt::OpenPGP::Compressed - Compressed data packets
 
     use Crypt::OpenPGP::Compressed;
 
+    my $data = 'serialized openpgp packets';
     my $cdata = Crypt::OpenPGP::Compressed->new( Data => $data );
     my $serialized = $cdata->save;
-
-    my $cdata = Crypt::OpenPGP::Compressed->parse($buffer);
-    my $data = $cdata->decompress;
 
 =head1 DESCRIPTION
 

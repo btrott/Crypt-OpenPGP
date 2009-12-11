@@ -20,11 +20,6 @@ __END__
 
 Crypt::OpenPGP::Marker - PGP Marker packet
 
-=head1 SYNOPSIS
-
-    use Crypt::OpenPGP::Marker;
-    my $marker = Crypt::OpenPGP::Marker->parse($buffer);
-
 =head1 DESCRIPTION
 
 I<Crypt::OpenPGP::Marker> is a PGP Marker packet. These packets are

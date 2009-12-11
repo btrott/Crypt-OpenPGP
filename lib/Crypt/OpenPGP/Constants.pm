@@ -61,10 +61,6 @@ __END__
 
 Crypt::OpenPGP::Constants - Exportable constants
 
-=head1 SYNOPSIS
-
-    use Crypt::OpenPGP::Constants qw( :tag CONSTANT1 );
-
 =head1 DESCRIPTION
 
 I<Crypt::OpenPGP::Constants> provides a list of common and useful

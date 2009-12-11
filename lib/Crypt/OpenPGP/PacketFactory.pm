@@ -200,10 +200,12 @@ Crypt::OpenPGP::PacketFactory - Parse and save PGP packet streams
 
     use Crypt::OpenPGP::PacketFactory;
 
+    my $buf = Crypt::OpenPGP::Buffer->new;
     while (my $packet = Crypt::OpenPGP::PacketFactory->parse($buf)) {
         ## Do something with $packet
     }
 
+    my @packets;
     my $serialized = Crypt::OpenPGP::PacketFactory->save(@packets);
 
 =head1 DESCRIPTION

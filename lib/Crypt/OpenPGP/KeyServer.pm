@@ -83,14 +83,16 @@ Crypt::OpenPGP::KeyServer - Interface to HKP keyservers
 =head1 SYNOPSIS
 
     use Crypt::OpenPGP::KeyServer;
+
+    my $key_id = '...';
     my $server = Crypt::OpenPGP::KeyServer->new(
-                          Server => 'wwwkeys.us.pgp.net'
-                   );
+        Server => 'wwwkeys.us.pgp.net'
+    );
     my $kb = $server->find_keyblock_by_keyid($key_id);
     print $kb->primary_uid, "\n";
     my $cert = $kb->key;
 
-    my @kbs = $server->find_keyblock_by_uid('foo@bar.com');
+    my @kbs = $server->find_keyblock_by_uid( 'foo@bar.com' );
 
 =head1 DESCRIPTION
 

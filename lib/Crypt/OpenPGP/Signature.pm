@@ -275,19 +275,14 @@ Crypt::OpenPGP::Signature - Signature packet
 
     use Crypt::OpenPGP::Signature;
 
+    my $cert = Crypt::OpenPGP::Certificate->new;
+    my $plaintext = 'foo bar';
+
     my $sig = Crypt::OpenPGP::Signature->new(
-                               Key  => $secret_key,
-                               Data => $plaintext,
-                               Type => 0x00,
-                     );
+        Key  => $cert,
+        Data => $plaintext,
+    );
     my $serialized = $sig->save;
-
-    my $sig = Crypt::OpenPGP::Signature->parse($buffer);
-    my $hashed_data = $sig->hash_data($plaintext);
-
-    ## Look up public key by $sig->key_id to get $cert, then...
-
-    my $is_valid_sig = $cert->key->verify($sig, $hashed_data);
 
 =head1 DESCRIPTION
 

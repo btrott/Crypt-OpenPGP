@@ -91,7 +91,9 @@ Crypt::OpenPGP::Digest - PGP message digest factory
 
     use Crypt::OpenPGP::Digest;
 
-    my $dgst = Crypt::OpenPGP::Digest->new($name);
+    my $alg = 'SHA1';
+    my $dgst = Crypt::OpenPGP::Digest->new( $alg );
+    my $data = 'foo bar';
     my $hashed_data = $dgst->hash($data);
 
 =head1 DESCRIPTION
@@ -117,7 +119,7 @@ OpenPGP RFC). Using an algorithm name is recommended, for the simple
 reason that it is easier to understand quickly (not everyone knows
 the algorithm IDs).
 
-Valid digest names are: C<MD5>, C<IDEA>, and C<RIPEMD160>.
+Valid digest names are: C<MD5>, C<SHA1>, and C<RIPEMD160>.
 
 Returns the new digest object on success. On failure returns C<undef>;
 the caller should check for failure and call the class method I<errstr>

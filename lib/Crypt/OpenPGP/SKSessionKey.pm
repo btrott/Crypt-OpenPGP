@@ -83,16 +83,14 @@ Crypt::OpenPGP::SKSessionKey - Symmetric-Key Encrypted Session Key
 
     use Crypt::OpenPGP::SKSessionKey;
 
-    my $key_data = 'f' x 64;    ## Not a very good key :)
+    my $passphrase = 'foobar';  # Not a very good passphrase
+    my $key_data = 'f' x 64;    # Not a very good key
 
-    my $skey = Crypt::OpenPGP::SessionKey->new(
-                            Passphrase => $passphrase,
-                            SymKey => $key_data,
-                    );
+    my $skey = Crypt::OpenPGP::SKSessionKey->new(
+        Passphrase  => $passphrase,
+        SymKey      => $key_data,
+    );
     my $serialized = $skey->save;
-
-    my $skey = Crypt::OpenPGP::SKSessionKey->parse($buffer);
-    my($key_data, $alg) = $skey->decrypt($passphrase);
 
 =head1 DESCRIPTION
 

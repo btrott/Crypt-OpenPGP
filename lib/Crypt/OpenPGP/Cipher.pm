@@ -158,8 +158,10 @@ Crypt::OpenPGP::Cipher - PGP symmetric cipher factory
 
     use Crypt::OpenPGP::Cipher;
 
-    my $cipher = Crypt::OpenPGP::Cipher->new($name);
+    my $alg = 'Rijndael';
+    my $cipher = Crypt::OpenPGP::Cipher->new( $alg );
 
+    my $plaintext = 'foo bar';
     my $ct = $cipher->encrypt($plaintext);
     my $pt = $cipher->decrypt($ct);
 

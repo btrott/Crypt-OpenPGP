@@ -23,12 +23,6 @@ __END__
 
 Crypt::OpenPGP::OnePassSig - One-Pass Signature packet
 
-=head1 SYNOPSIS
-
-    use Crypt::OpenPGP::OnePassSig;
-
-    my $onepass = Crypt::OpenPGP::OnePassSig->parse($buffer);
-
 =head1 DESCRIPTION
 
 I<Crypt::OpenPGP::OnePassSig> implements a PGP One-Pass Signature

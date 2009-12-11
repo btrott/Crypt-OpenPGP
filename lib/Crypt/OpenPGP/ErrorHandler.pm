@@ -31,20 +31,17 @@ Crypt::OpenPGP::ErrorHandler - Crypt::OpenPGP error handling
 
     sub class_method {
         my $class = shift;
-        ...
-        return $class->error("Help!")
-            unless $continue;
+        # Stuff happens...
+        return $class->error("Help!");
     }
 
     sub object_method {
         my $obj = shift;
-        ...
-        return $obj->error("I am no more")
-            unless $continue;
+        # Stuff happens...
+        return $obj->error("I am no more");
     }
 
     package main;
-    use Foo;
 
     Foo->class_method or die Foo->errstr;
 

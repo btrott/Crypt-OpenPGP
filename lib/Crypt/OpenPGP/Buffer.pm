@@ -30,6 +30,8 @@ Crypt::OpenPGP::Buffer - Binary in/out buffer
 
     use Crypt::OpenPGP::Buffer;
 
+    my $n = PARI( 1 );
+    
     my $buf = Crypt::OpenPGP::Buffer->new;
     $buf->put_mp_int($n);
 
