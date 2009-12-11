@@ -15,6 +15,9 @@ use Crypt::OpenPGP::Config;
 use Crypt::OpenPGP::ErrorHandler;
 use base qw( Crypt::OpenPGP::ErrorHandler );
 
+use File::HomeDir;
+use File::Spec;
+
 use vars qw( %COMPAT );
 
 ## pgp2 and pgp5 do not trim trailing whitespace from "canonical text"
@@ -30,6 +33,12 @@ $Crypt::OpenPGP::Globals::Trim_trailing_ws = 1;
         return @paths ? @paths : ();
     };
 
+    my $home = sub {
+        my( @path ) = @_;
+        my $home_dir = File::HomeDir->my_home or return;
+        return File::Spec->catfile( $home_dir, @path );
+    };
+
     %COMPAT = (
         PGP2 => {
               'sign'    => { Digest => 'MD5', Version => 3 },
@@ -38,15 +47,15 @@ $Crypt::OpenPGP::Globals::Trim_trailing_ws = 1;
                              Version => 3, Digest => 'MD5' },
               'PubRing' => [
                      $env->('PGPPATH','pubring.pgp'),
-                     $env->('HOME', '.pgp/pubring.pgp'),
+                     $home->( '.pgp', 'pubring.pgp' ),
               ],
               'SecRing' => [
                      $env->('PGPPATH','secring.pgp'),
-                     $env->('HOME', '.pgp/secring.pgp'),
+                     $home->( '.pgp', 'secring.pgp' ),
               ],
               'Config'  => [
                      $env->('PGPPATH', 'config.txt'),
-                     $env->('HOME', '.pgp/config.txt'),
+                     $home->( '.pgp', 'config.txt' ),
               ],
         },
 
@@ -57,15 +66,15 @@ $Crypt::OpenPGP::Globals::Trim_trailing_ws = 1;
                              Version => 4, Digest => 'SHA1' },
               'PubRing' => [
                      $env->('PGPPATH','pubring.pkr'),
-                     $env->('HOME', '.pgp/pubring.pkr'),
+                     $home->( '.pgp', 'pubring.pkr' ),
               ],
               'SecRing' => [
                      $env->('PGPPATH','secring.skr'),
-                     $env->('HOME', '.pgp/secring.skr'),
+                     $home->( '.pgp', 'secring.skr' ),
               ],
               'Config'  => [
                      $env->('PGPPATH', 'pgp.cfg'),
-                     $env->('HOME', '.pgp/pgp.cfg'),
+                     $home->( '.pgp', 'pgp.cfg' ),
               ],
         },
 
@@ -77,15 +86,15 @@ $Crypt::OpenPGP::Globals::Trim_trailing_ws = 1;
                              Version => 4, Digest => 'RIPEMD160' },
               'Config'  => [
                      $env->('GNUPGHOME', 'options'),
-                     $env->('HOME', '.gnupg/options'),
+                     $home->( '.gnupg', 'options' ),
               ],
               'PubRing' => [
                      $env->('GNUPGHOME', 'pubring.gpg'),
-                     $env->('HOME', '.gnupg/pubring.gpg'),
+                     $home->( '.gnupg', 'pubring.gpg' ),
               ],
               'SecRing' => [
                      $env->('GNUPGHOME', 'secring.gpg'),
-                     $env->('HOME', '.gnupg/secring.gpg'),
+                     $home->( '.gnupg', 'secring.gpg' ),
               ],
         },
     );

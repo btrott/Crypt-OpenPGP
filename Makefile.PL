@@ -12,6 +12,7 @@ requires 'LWP::UserAgent';
 requires 'URI::Escape';
 requires 'Crypt::DSA';
 requires 'Crypt::RSA';
+requires 'File::HomeDir';
 
 # PGP2 compat.
 requires 'Crypt::IDEA';
