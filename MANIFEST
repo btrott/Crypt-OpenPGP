@@ -13,6 +13,8 @@ inc/Module/Install/ReadmeFromPod.pm
 inc/Module/Install/Repository.pm
 inc/Module/Install/Win32.pm
 inc/Module/Install/WriteAll.pm
+inc/Sub/Uplevel.pm
+inc/Test/Exception.pm
 lib/Crypt/OpenPGP.pm
 lib/Crypt/OpenPGP/Armour.pm
 lib/Crypt/OpenPGP/Buffer.pm
@@ -76,6 +78,5 @@ t/samples/gpg/ring.pub
 t/samples/gpg/ring.sec
 t/samples/message.asc
 t/test-common.pl
-xt/perlcritic.t
 xt/pod.t
 xt/synopsis.t
