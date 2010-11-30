@@ -6,7 +6,7 @@ readme_from 'lib/Crypt/OpenPGP.pm';
 # Core requirements.
 requires 'Data::Buffer' => '0.04';
 requires 'MIME::Base64';
-requires 'Math::Pari';
+requires 'Math::BigInt';
 requires 'Compress::Zlib';
 requires 'LWP::UserAgent';
 requires 'URI::Escape';
