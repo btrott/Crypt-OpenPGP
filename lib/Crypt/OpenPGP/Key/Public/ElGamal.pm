@@ -35,7 +35,7 @@ package Crypt::OpenPGP::ElGamal::Public;
 use strict;
 
 use Crypt::OpenPGP::Util qw( mod_exp );
-use Math::Pari qw( Mod lift gcd );
+use Math::BigInt;
 
 sub new { bless {}, $_[0] }
 
@@ -45,9 +45,8 @@ sub encrypt {
     my $k = gen_k($key->p);
     my $a = mod_exp($key->g, $k, $key->p);
     my $b = mod_exp($key->y, $k, $key->p);
-    $b = Mod($b, $key->p);
-    $b = lift($b * $M);
-    { a => $a, b => $b };
+    $b->bmod($key->p);  
+    { a => $a, b => $b * $M };
 }
 
 sub gen_k {
@@ -55,10 +54,13 @@ sub gen_k {
     ## XXX choose bitsize based on bitsize of $p
     my $bits = 198;
     my $p_minus1 = $p - 1;
+
     require Crypt::Random;
     my $k = Crypt::Random::makerandom( Size => $bits, Strength => 0 );
+    # We get back a Math::Pari object, but need a Math::BigInt
+    $k = Math::BigInt->new($k);
     while (1) {
-        last if gcd($k, $p_minus1) == 1;
+        last if Math::BigInt::bgcd($k, $p_minus1) == 1;
         $k++;
     }
     $k;

@@ -25,7 +25,7 @@ package Crypt::OpenPGP::ElGamal::Private;
 use strict;
 
 use Crypt::OpenPGP::Util qw( mod_exp mod_inverse );
-use Math::Pari qw( Mod lift );
+use Math::BigInt;
 
 sub new { bless {}, $_[0] }
 
@@ -35,8 +35,9 @@ sub decrypt {
     my $p = $key->p;
     my $t1 = mod_exp($C->{a}, $key->x, $p);
     $t1 = mod_inverse($t1, $p);
-    my $output = Mod($C->{b}, $p);
-    lift($output * $t1);
+    my $n = Math::BigInt->new($C->{b} * $t1);
+    $n->bmod($p);
+    return $n;
 }
 
 sub _getset {
