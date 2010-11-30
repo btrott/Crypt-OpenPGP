@@ -1,7 +1,7 @@
 package Crypt::OpenPGP::Util;
 use strict;
 
-use Math::Pari qw( PARI pari2num floor Mod lift );
+use Math::BigInt;
 
 use vars qw( @EXPORT_OK @ISA );
 use Exporter;
@@ -10,15 +10,18 @@ use Exporter;
 @ISA = qw( Exporter );
 
 sub bitsize {
-    return pari2num(floor(Math::Pari::log($_[0])/Math::Pari::log(2)) + 1);
+    my $bigint = Math::BigInt->new($_[0]);
+    return $bigint->bfloor($bigint->blog(2)) + 1;   
 }
 
-sub bin2mp { Math::Pari::_hex_cvt('0x' . unpack 'H*', $_[0]) }
+sub bin2mp { $_[0] ? Math::BigInt->new('0x' . unpack 'H*', $_[0]) : 0 }
 
 sub mp2bin {
     my($p) = @_;
-    $p = PARI($p);
-    my $base = PARI(1) << PARI(4*8);
+    
+	$p = _ensure_bigint($p);
+    
+    my $base = 1 << 4*8;
     my $res = '';
     while ($p != 0) {
         my $r = $p % $base;
@@ -37,14 +40,18 @@ sub mp2bin {
 
 sub mod_exp {
     my($a, $exp, $n) = @_;
-    my $m = Mod($a, $n);
-    lift($m ** $exp);
+    
+    $a = _ensure_bigint($a);
+    
+    $a->copy->bmodpow($exp, $n);
 }
 
 sub mod_inverse {
     my($a, $n) = @_;
-    my $m = Mod(1, $n);
-    lift($m / $a);
+    
+    $a = _ensure_bigint($a);
+   
+    $a->copy->bmodinv($n);
 }
 
 sub dash_escape {
@@ -74,6 +81,17 @@ sub canonical_text {
         }
     }
     join "\r\n", @lines;
+}
+
+
+sub _ensure_bigint {
+	my $num = shift;	
+	
+    if ($num && (! ref $num || ! $num->isa('Math::BigInt'))) {    	
+    	$num = Math::BigInt->new("$num");
+    }
+    
+    return $num;
 }
 
 1;
