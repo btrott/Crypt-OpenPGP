@@ -1,10 +1,10 @@
 use strict;
 use Test::More tests => 6;
 
-use Math::Pari;
+use Math::BigInt;
 use Crypt::OpenPGP::Buffer;
 
-my @num = map { PARI( $_ ) } qw( 34093840983 99999999999999999999 1 );
+my @num = map { Math::BigInt->new( $_ ) } qw( 34093840983 99999999999999999999 1 );
 
 for my $n ( @num ) {
     my $buffer = Crypt::OpenPGP::Buffer->new;

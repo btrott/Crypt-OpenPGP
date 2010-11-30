@@ -9,7 +9,8 @@ sub get_mp_int {
     my $bytes = int(($bits + 7) / 8);
     my $off = $buf->{offset};
     $buf->{offset} += $bytes;
-    bin2mp($buf->bytes($off, $bytes));
+    my $int = bin2mp($buf->bytes($off, $bytes));
+    "$int";
 }
 
 sub put_mp_int {
