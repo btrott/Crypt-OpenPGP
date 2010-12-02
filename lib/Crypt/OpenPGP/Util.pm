@@ -1,7 +1,9 @@
 package Crypt::OpenPGP::Util;
 use strict;
 
-use Math::BigInt;
+# For some reason, FastCalc causes problems. Restrict to one of these 3 backends
+use Math::BigInt only => 'Pari,GMP,Calc';
+use Data::Dumper;
 
 use vars qw( @EXPORT_OK @ISA );
 use Exporter;
@@ -18,7 +20,7 @@ sub bin2mp { $_[0] ? Math::BigInt->new('0x' . unpack 'H*', $_[0]) : 0 }
 
 sub mp2bin {
     my($p) = @_;
-    
+        
 	$p = _ensure_bigint($p);
     
     my $base = 1 << 4*8;
@@ -50,7 +52,7 @@ sub mod_inverse {
     my($a, $n) = @_;
     
     $a = _ensure_bigint($a);
-   
+
     $a->copy->bmodinv($n);
 }
 
@@ -88,7 +90,7 @@ sub _ensure_bigint {
 	my $num = shift;	
 	
     if ($num && (! ref $num || ! $num->isa('Math::BigInt'))) {    	
-    	$num = Math::BigInt->new("$num");
+    	$num = Math::BigInt->new($num);
     }
     
     return $num;
