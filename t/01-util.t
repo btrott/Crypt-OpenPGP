@@ -2,7 +2,7 @@ use strict;
 use Test::More tests => 41;
 
 use Math::BigInt;
-use Crypt::OpenPGP::Util qw( bin2mp mp2bin bitsize mod_exp mod_inverse );
+use Crypt::OpenPGP::Util qw( bin2bigint bigint2bin bitsize mod_exp mod_inverse );
 
 use vars qw( @TESTS );
 @TESTS = (
@@ -39,15 +39,15 @@ use vars qw( @TESTS );
 );
 
 for my $t (@TESTS) {
-    my $n = bin2mp( $t->[0] );
+    my $n = bin2bigint( $t->[0] );
     my $num = Math::BigInt->new( $t->[1] );
-    is $n, $num, 'bin2mp matches PARI';
+    is $n, $num, 'bin2bigint matches BigInt';
     if ($t->[2]) {
-        is bitsize( $num ), $t->[2], 'bitsize for bin2mp is correct';
-        is bitsize( $n ), $t->[2], 'bitsize for PARI is correct';
+        is bitsize( $num ), $t->[2], 'bitsize for bin2bigint is correct';
+        is bitsize( $n ), $t->[2], 'bitsize for BigInt is correct';
     }
-    is mp2bin( $n ), $t->[0], 'mp2bin gives us original';
-    is mp2bin( $t->[1] ), $t->[0], 'mp2bin (from string) gives us original';
+    is bigint2bin( $n ), $t->[0], 'bigint2bin gives us original';
+    is bigint2bin( $t->[1] ), $t->[0], 'bigint2bin (from string) gives us original';
 }
  
 my( $n1, $n2, $n3, $n4 ) = map { Math::BigInt->new( $_ ) }
