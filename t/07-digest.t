@@ -2,6 +2,7 @@ use strict;
 use Test::More;
 
 use Crypt::OpenPGP::Digest;
+use Config;
 
 my %TESTDATA = (
     1 => [ 16, '6abb1d8ca3f00772440701359a8b2fcf' ],
@@ -46,5 +47,12 @@ for my $did ( sort { $a <=> $b } keys %TESTS ) {
     is $digest->alg_id, $did, 'algorithm id matches';
     my $hash = $digest->hash( $data );
     is length( $hash ), $TESTDATA{ $did }[0], 'length of digest matches';
-    is $hash, pack( 'H*', $TESTDATA{$did}[1] ), 'digest data matches';
+    
+    SKIP: {
+    	if ($TESTS{ $did }eq 'RIPEMD160' && $Config{longsize} == 8 
+    			&& $Config{use64bitall} eq 'define' && $Config{longdblsize} == 16) {
+    		skip "Skipped due to Crypt::RIPEMD160 bug on 64 bit systems (see rt19138 & rt53323)", 1;
+    	}    		
+    	is $hash, pack( 'H*', $TESTDATA{$did}[1] ), 'digest data matches';
+    }
 }
