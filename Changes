@@ -1,5 +1,10 @@
 Revision history for Crypt::OpenPGP
 
+1.05
+    - Removed Math::Pari as a dependency of Crypt::OpenPGP itself (it's
+      still a dependency of some of the backends, including Crypt::RSA).
+      Thanks to Sam Crawley for the patch.
+
 1.04 2009.12.10
     - Keyring lookup by uid is now case-insensitive to match the behavior
       in GnuPG. Fixes http://rt.cpan.org/Public/Bug/Display.html?id=2225
