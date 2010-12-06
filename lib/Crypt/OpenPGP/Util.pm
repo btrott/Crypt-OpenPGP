@@ -3,7 +3,6 @@ use strict;
 
 # For some reason, FastCalc causes problems. Restrict to one of these 3 backends
 use Math::BigInt only => 'Pari,GMP,Calc';
-use Data::Dumper;
 
 use vars qw( @EXPORT_OK @ISA );
 use Exporter;
