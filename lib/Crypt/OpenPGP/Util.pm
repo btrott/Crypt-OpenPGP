@@ -22,9 +22,9 @@ sub bin2bigint { $_[0] ? Math::BigInt->new('0x' . unpack 'H*', $_[0]) : 0 }
 sub bigint2bin {
     my($p) = @_;
         
-	$p = _ensure_bigint($p);
+    $p = _ensure_bigint($p);
     
-    my $base = 1 << 4*8;
+    my $base = _ensure_bigint(1) << _ensure_bigint(4*8);
     my $res = '';
     while ($p != 0) {
         my $r = $p % $base;
