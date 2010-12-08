@@ -89,7 +89,7 @@ use base qw( Crypt::OpenPGP::ErrorHandler );
                 upshot         vapor          village        virus
                 Vulcan         waffle         wallet         watchword
                 wayside        willow         woodlark       Zulu
-	) ],
+        ) ],
 
         ## Three-syllable words for encoding even bytes
         [ qw(

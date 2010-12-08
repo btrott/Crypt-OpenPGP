@@ -90,10 +90,10 @@ sub canonical_text {
 
 
 sub _ensure_bigint {
-	my $num = shift;	
-	
-    if ($num && (! ref $num || ! $num->isa('Math::BigInt'))) {    	
-    	$num = Math::BigInt->new($num);
+    my $num = shift;
+
+    if ($num && (! ref $num || ! $num->isa('Math::BigInt'))) {
+        $num = Math::BigInt->new($num);
     }
     
     return $num;
