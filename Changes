@@ -1,5 +1,10 @@
 Revision history for Crypt::OpenPGP
 
+1.06  2010.12.07
+    - Fixed an issue introduced in 1.05 on 32-bit systems in
+      Crypt::OpenPGP::Util::bigint2bin, where $base needed to be a
+      bigint. Thanks to Sam Crawley for the fix.
+
 1.05  2010.12.06
     - Removed Math::Pari as a dependency of Crypt::OpenPGP itself (it's
       still a dependency of some of the backends, including Crypt::RSA).
