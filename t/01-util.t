@@ -1,5 +1,5 @@
 use strict;
-use Test::More tests => 41;
+use Test::More tests => 63;
 
 use Math::BigInt;
 use Crypt::OpenPGP::Util qw( bin2bigint bigint2bin bitsize mod_exp mod_inverse );
@@ -60,3 +60,12 @@ is $num, $n4, 'mod_exp is correct';
 $num = mod_inverse( $n1, $n2 );
 is $num, $n3, 'mod_inverse gives expected result';
 is 1, ( $n1 * $num ) % $n2, 'mod_inverse verified';
+
+for my $bits (190..200) {
+	my $val = Crypt::OpenPGP::Util::get_random_bigint($bits);
+	my $topbit = Math::BigInt->new("0b1" . ("0" x ($bits-1)));
+	$topbit->band($val);
+	ok !$topbit->is_zero, "top bit is set for $bits-bit number";
+	$val->brsft($bits);
+	ok $val->is_zero, "number is exactly $bits bits";
+}

@@ -11,6 +11,7 @@ use Crypt::OpenPGP::Plaintext;
 use Crypt::OpenPGP::Message;
 use Crypt::OpenPGP::PacketFactory;
 use Crypt::OpenPGP::Config;
+use Crypt::OpenPGP::Util;
 
 use Crypt::OpenPGP::ErrorHandler;
 use base qw( Crypt::OpenPGP::ErrorHandler );
@@ -455,8 +456,7 @@ sub encrypt {
                 Crypt::OpenPGP::Compressed->errstr);
         $ptdata = Crypt::OpenPGP::PacketFactory->save($cdata);
     }
-    require Crypt::Random;
-    my $key_data = Crypt::Random::makerandom_octet( Length => 32 );
+    my $key_data = Crypt::OpenPGP::Util::get_random_bytes(32);
     my $sym_alg = $param{Cipher} ?
         Crypt::OpenPGP::Cipher->alg_id($param{Cipher}) : DEFAULT_CIPHER;
     my(@sym_keys);

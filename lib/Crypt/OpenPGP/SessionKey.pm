@@ -88,11 +88,12 @@ sub decrypt {
 
 sub _encode {
     my $class = shift;
-    require Crypt::Random;
     my($sym_key, $sym_alg, $size) = @_;
     my $padlen = "$size" - length($sym_key) - 2 - 2 - 2;
-    my $pad = Crypt::Random::makerandom_octet( Length => $padlen,
-                                               Skip => chr(0) );
+    my $pad = "\0";
+    while ($pad =~ tr/\0//) {
+        $pad = Crypt::OpenPGP::Util::get_random_bytes($padlen);
+    }
     bin2mp(pack 'na*na*n', 2, $pad, $sym_alg, $sym_key,
         unpack('%16C*', $sym_key));
 }
