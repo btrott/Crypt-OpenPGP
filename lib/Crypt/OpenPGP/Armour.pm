@@ -188,7 +188,7 @@ This argument is required.
 =item * Headers
 
 A reference to a hash containing key-value pairs, where the key is the
-name of the the header and the value the header value. These headers
+name of the header and the value the header value. These headers
 are placed at the top of the encoded message in the form C<Header: Value>.
 
 =back
