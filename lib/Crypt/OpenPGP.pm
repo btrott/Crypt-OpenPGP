@@ -399,7 +399,7 @@ sub verify {
 
 ## pgp2 and pgp5 do not trim trailing whitespace from "canonical text"
 ## signatures, only from cleartext signatures. So we first try to verify
-## the signature using proper RFC2440 canonical text, then if that fails,
+## the signature using proper RFC4880 canonical text, then if that fails,
 ## retry without trimming trailing whitespace.
 ## See:
 ##   http://cert.uni-stuttgart.de/archive/ietf-openpgp/2000/01/msg00033.html
@@ -1671,7 +1671,7 @@ Trott, cpan@stupidfool.org. All rights reserved.
 
 =over 4
 
-=item 1 RFC2440 - OpenPGP Message Format (1998). http://www.faqs.org/rfcs/rfc2440.html
+=item 1 RFC4880 - OpenPGP Message Format (2007). http://www.faqs.org/rfcs/rfc4880.html
 
 =back 
 

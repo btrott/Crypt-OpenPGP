@@ -212,7 +212,7 @@ this class implements.
 
 Creates a new type of S2k-generator of type I<$type>; valid values for
 I<$type> are C<Simple>, C<Salted>, and C<Salt_Iter>. These generator
-types are described in the OpenPGP RFC section 3.6.
+types are described in the OpenPGP RFC section 3.7.
 
 Returns the new S2k-generator object.
 

@@ -842,6 +842,5 @@ AUTHOR & COPYRIGHT
     Trott, cpan@stupidfool.org. All rights reserved.
 
 REFERENCES
-    1 RFC2440 - OpenPGP Message Format (1998).
-    http://www.faqs.org/rfcs/rfc2440.html
-
+    1 RFC4880 - OpenPGP Message Format (2007).
+    http://www.faqs.org/rfcs/rfc4880.html

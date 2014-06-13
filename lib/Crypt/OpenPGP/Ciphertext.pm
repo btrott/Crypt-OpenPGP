@@ -134,7 +134,7 @@ packets, providing both encryption and decryption functionality. Both
 standard encrypted data packets and encrypted-MDC (modification
 detection code) packets are supported by this class. In the first case,
 the encryption used in the packets is a variant on standard CFB mode,
-and is described in the OpenPGP RFC, in section 12.8 (OpenPGP CFB mode).
+and is described in the OpenPGP RFC, in section 13.9 (OpenPGP CFB mode).
 In the second case (encrypted-MDC packets), the encryption is performed
 in standard CFB mode, without the special resync used in PGP's CFB.
 
