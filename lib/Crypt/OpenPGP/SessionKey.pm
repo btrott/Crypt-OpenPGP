@@ -59,8 +59,8 @@ sub save {
     $buf->put_bytes($key->{key_id}, 8);
     $buf->put_int8($key->{pk_alg});
     my $c = $key->{C};
-    for my $mp (values %$c) {
-        $buf->put_mp_int($mp);
+    for my $prop (sort keys %$c) {
+        $buf->put_mp_int($c->{$prop});
     }
     $buf->bytes;
 }
@@ -69,8 +69,9 @@ sub display {
     my $key = shift;
     my $str = sprintf ":pubkey enc packet: version %d, algo %d, keyid %s\n",
         $key->{version}, $key->{pk_alg}, uc unpack('H*', $key->{key_id});
-    for my $mp (values %{ $key->{C} }) {
-        $str .= sprintf "        data: [%d bits]\n", bitsize($mp);
+    my $c = $key->{C};
+    for my $prop (sort keys %$c) {
+        $str .= sprintf "        data: [%d bits]\n", bitsize($c->{$prop});
     }
     $str;
 }
