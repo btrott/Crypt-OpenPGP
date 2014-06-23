@@ -1,18 +1,18 @@
 Revision history for Crypt::OpenPGP
 
-1.06  2010.12.07
+1.06  2010-12-07
     - Fixed an issue introduced in 1.05 on 32-bit systems in
       Crypt::OpenPGP::Util::bigint2bin, where $base needed to be a
       bigint. Thanks to Sam Crawley for the fix.
 
-1.05  2010.12.06
+1.05  2010-12-06
     - Removed Math::Pari as a dependency of Crypt::OpenPGP itself (it's
       still a dependency of some of the backends, including Crypt::RSA).
       Thanks to Sam Crawley for the patch.
     - Skipped RIPEMD160 test on amd64 due to known bug in Crypt::RIPEMD160
       (see rt19138 & rt53323). Thanks to Sam Crawley for the patch.
 
-1.04 2009.12.10
+1.04 2009-12-10
     - Keyring lookup by uid is now case-insensitive to match the behavior
       in GnuPG. Fixes http://rt.cpan.org/Public/Bug/Display.html?id=2225
     - Got rid of a warning in Crypt::OpenPGP::SKSessionKey related to
@@ -34,7 +34,7 @@ Revision history for Crypt::OpenPGP
     - Added author tests (xt/) and modified SYNOPSIS for all modules to
       make them pass the compilation test.
 
-1.03 2002.12.09
+1.03 2002-12-09
     - Makefile.PL now uses ExtUtils::AutoInstall. Thanks to Autrijus Tang
       for the note.
     - SIGNATURE file now included with distribution.
@@ -48,7 +48,7 @@ Revision history for Crypt::OpenPGP
       Crypt::OpenPGP::Cipher::supported.
     - Fixed bug where signed cleartext has \r characters in the header.
 
-1.02 2002.10.12
+1.02 2002-10-12
     - encrypt and verify now support auto-retrieval of public keys from
       an HKP keyserver, if the keys are not found in the local keyring.
     - Added support for the SHA-1 integrity checks on secret keys used
@@ -66,7 +66,7 @@ Revision history for Crypt::OpenPGP
     - Added Crypt::OpenPGP::Signature::digest accessor. Thanks to Bob
       Mathews for the patch.
 
-1.01 2002.07.15
+1.01 2002-07-15
     - Added Crypt::OpenPGP::handle, a DWIM wrapper around the other
       high-level interface methods. Given data, it determines whether the
       data needs to be decrypted, verified, or both. And then it does what
@@ -89,7 +89,7 @@ Revision history for Crypt::OpenPGP
     - Added Crypt::OpenPGP::KeyServer, which does lookups against an HKP
       keyserver.
 
-1.00 2002.02.26
+1.00 2002-02-26
     - CAST5 is now supported thanks to Crypt::CAST5_PP from Bob Mathews.
     - bin/pgplet now supports encrypting and decrypting symmetrically-
       encrypted messages.
@@ -108,7 +108,7 @@ Revision history for Crypt::OpenPGP
       key data *and* user ID. Thanks to Joel Rowles for the spot.
     - Fix bug in ElGamal encryption and k generation.
 
-0.18  2002.01.29
+0.18  2002-01-29
     - Added IsPacketStream parameter to Crypt::OpenPGP::Message; this turns
       off armour detection when initializing the message, and can be used
       when you *know* that the message is a stream of packets, and not an
@@ -128,7 +128,7 @@ Revision history for Crypt::OpenPGP
     - Fixed subkey IDs in list-keys with bin/pgplet.
     - Check for errors when reading keyring.
 
-0.17  2001.09.15
+0.17  2001-09-15
     - Added Crypt::OpenPGP::Config to hold per-instance configuration
       information, either specified through the constructor, or set
       in a config file. Reads from existing PGP/GnuPG config files.
@@ -143,10 +143,10 @@ Revision history for Crypt::OpenPGP
     - Removed Crypt::DES_EDE3 from this distribution, moved into its own
       distribution.
 
-0.16  2001.08.15
+0.16  2001-08-15
     - Took stupid extraneous files out of lib. Ick.
 
-0.15  2001.08.15
+0.15  2001-08-15
     - Added bin/pgplet as an example of Crypt::OpenPGP usage.
     - Added PassphraseCallback parameter to Crypt::OpenPGP::decrypt
       and Crypt::OpenPGP::sign; this callback will be invoked when a
@@ -185,7 +185,7 @@ Revision history for Crypt::OpenPGP
       deserialized from some external source (network, database, etc.).
       Thanks to Vipul for the idea.
 
-0.14  2001.08.09
+0.14  2001-08-09
     - Crypt::OpenPGP::CFB now works in both standard and PGP-variant
       mode (where PGP-variant is the slightly strange mode with the
       resyncs). Support added via a 'sync' method to manually resync.
@@ -216,7 +216,7 @@ Revision history for Crypt::OpenPGP
       IDs). Thanks to Vipul for the idea and patch (reworked).
     - Fixed some compatibility (syntax) issues when using perl 5.005_03.
 
-0.13  2001.07.31
+0.13  2001-07-31
     - Fix handling of partial length headers.
     - Use proper version of Data::Buffer in Makefile.PL prereq.
     - Fix bug with -----BEGIN PGP in text that is not actually armoured;
@@ -230,7 +230,7 @@ Revision history for Crypt::OpenPGP
       when decrypting the message, in case there are multiple session
       key packets. Thanks to Vipul for the patch.
 
-0.12  2001.07.29
+0.12  2001-07-29
     - Added support for clear-text signatures, both creating (Clearsign
       param to 'sign') and verifying (transparent support).
     - For the time being Makefile.PL will not give a choice of
@@ -239,7 +239,7 @@ Revision history for Crypt::OpenPGP
       reworked to auto-detect which module is installed and run the
       tests with the appropriate key types.
 
-0.11  2001.07.29
+0.11  2001-07-29
     - Added support for symmetric-key encrypted session key packets,
       which means that Crypt::OpenPGP now supports "conventional"
       encryption of data, in addition to the public-key encryption that
@@ -255,7 +255,7 @@ Revision history for Crypt::OpenPGP
     - Fix Compat settings for PGP5, 3DES => DES3. Thanks to Vipul
       for the spot and patch.
 
-0.10  2001.07.27
+0.10  2001-07-27
     - Added Compat flag to encrypt and sign, added docs. Thanks to
       Vipul for the idea.
     - Added support for Twofish and Rijndael ciphers (128-, 192-, and
@@ -272,7 +272,7 @@ Revision history for Crypt::OpenPGP
     - Cipher::key_len => Cipher::keysize.
     - Added t/06-cipher.t, test all installed cipher packages.
 
-0.09  2001.07.27
+0.09  2001-07-27
     - Fixed incompatibility with PGP2: PGP2 expects packets of certain
       types to have certain header len sizes, no matter the actual len
       of the data. eg. all Signature packets have to have 2 len bytes,
@@ -288,7 +288,7 @@ Revision history for Crypt::OpenPGP
       with PGP2.
     - Added tests for Crypt::OpenPGP::PacketFactory (t/05-packets.t).
 
-0.08  2001.07.26
+0.08  2001-07-26
     - Fixed DEK encoding on encrypted session keys; the padding size
       was incorrect, which meant that PGP5 could not recognize it
       as a valid encoding.
@@ -311,7 +311,7 @@ Revision history for Crypt::OpenPGP
     - Fix PARI error Util::mp2bin by casting 4*8 to PARI. Thanks to
       Vipul for the spot and patch.
 
-0.07  2001.07.26
+0.07  2001-07-26
     - Added key generation, in low-end Key etc. modules and in
       high-level Crypt::OpenPGP frontend, which returns two
       keyblocks.
@@ -319,7 +319,7 @@ Revision history for Crypt::OpenPGP
     - Applied Vipul's patch to fix warnings about GNUPGHOME
       and to add pubring.pkr and secring.skr. Thanks to Vipul.
 
-0.06  2001.07.25
+0.06  2001-07-25
     - Fixed bug in SessionKey::_decode with using ciphers with
       keys != 16 bytes. This caused incorrect checksums on the
       key data.
@@ -335,14 +335,14 @@ Revision history for Crypt::OpenPGP
       (in 01-util.t).
     - Changed Certificate->decrypt to Certificate->unlock.
 
-0.05  2001.07.23
+0.05  2001-07-23
     - Started test suite: currently it tests high-level OpenPGP
       interface using keyrings from GnuPG.
     - Rewrote CFB implementation (now faster).
     - Improved installation process (ask questions, check for
       required modules, etc.).
 
-0.04  2001.07.22
+0.04  2001-07-22
     - Added support RSA signing and verification.
     - Added support for ElGamal encryption/decryption.
     - Added second arg to Crypt::OpenPGP::PacketFactory::parse that
@@ -354,13 +354,13 @@ Revision history for Crypt::OpenPGP
     - Changed Crypt::OpenPGP methods to use find_keyblock_by_keyid
       instead of reading in entire keyring.
 
-0.03  2001.07.20
+0.03  2001-07-20
     - Fixed bug in un-armouring where checksum would not be picked up
       properly if base64-encoded data had '=' at the end.
     - Improved first crack at CRC24 implementation by using lookup
       tables. This helps a lot.
 
-0.02  2001.07.20
+0.02  2001-07-20
     - Added armouring in Crypt::OpenPGP::Armour.
     - Added high-level DWIM interface to Crypt::OpenPGP.
     - Now generate fingerprint on version 4 key certificates while
@@ -368,5 +368,5 @@ Revision history for Crypt::OpenPGP
       can just generate the fingerprint using that data, rather than
       having to serialize to get the key ID.
 
-0.01  2001.07.19
+0.01  2001-07-19
     - Initial version.
