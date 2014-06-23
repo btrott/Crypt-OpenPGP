@@ -1,5 +1,12 @@
 Revision history for Crypt::OpenPGP
 
+1.07  2014-06-23
+    - Reformatted Changes as per CPAN::Changes::Spec.
+    - Fixed hash randomisation bug (RT#81442).
+    - Documentation now references most recent "OpenPGP Message Format" RFC.
+    - Fixed typo in Pod (@dsteinbrunner).
+    - Improved ASCII armor detection (@gwillen).
+
 1.06  2010-12-07
     - Fixed an issue introduced in 1.05 on 32-bit systems in
       Crypt::OpenPGP::Util::bigint2bin, where $base needed to be a
