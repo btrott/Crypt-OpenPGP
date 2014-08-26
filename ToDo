@@ -1,5 +1,3 @@
-$Id: ToDo,v 1.37 2002/12/10 01:47:45 btrott Exp $
-
 Crypt::OpenPGP todo
 -------------------
 * add note/code for stripping utf8 from passphrase
