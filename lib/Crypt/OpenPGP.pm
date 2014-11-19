@@ -2,8 +2,7 @@ package Crypt::OpenPGP;
 use strict;
 use 5.008_001;
 
-use vars qw( $VERSION );
-$VERSION = '1.07';
+# VERSION
 
 use Crypt::OpenPGP::Constants qw( DEFAULT_CIPHER );
 use Crypt::OpenPGP::KeyRing;
