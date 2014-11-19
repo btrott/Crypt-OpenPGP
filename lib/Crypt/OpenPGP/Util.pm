@@ -119,7 +119,7 @@ sub get_random_bigint {
 		return Math::BigInt->new($pari);
 	}
 	elsif (eval 'require Bytes::Random::Secure; 1;') {
-		my $hex = Bytes::Random::Secure::random_bytes_hex(($bits + 7) / 8);
+		my $hex = Bytes::Random::Secure::random_bytes_hex(int(($bits + 7) / 8));
 		my $val = Math::BigInt->new("0x$hex");
 		# Get exactly the correct number of bits.
 		$val->brsft(8 - ($bits & 7)) if ($bits & 7);
