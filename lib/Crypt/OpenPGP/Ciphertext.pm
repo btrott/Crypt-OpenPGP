@@ -1,6 +1,7 @@
 package Crypt::OpenPGP::Ciphertext;
 use strict;
 
+use Crypt::OpenPGP::Util;
 use Crypt::OpenPGP::Cipher;
 use Crypt::OpenPGP::Constants qw( DEFAULT_CIPHER
                                   PGP_PKT_ENCRYPTED
@@ -24,11 +25,10 @@ sub init {
     if ((my $key = $param{SymKey}) && (my $data = $param{Data})) {
         $enc->{is_mdc} = $param{MDC} || 0;
         $enc->{version} = 1;
-        require Crypt::Random;
         my $alg = $param{Cipher} || DEFAULT_CIPHER;
         my $cipher = Crypt::OpenPGP::Cipher->new($alg, $key);
         my $bs = $cipher->blocksize;
-        my $pad = Crypt::Random::makerandom_octet( Length => $bs );
+        my $pad = Crypt::OpenPGP::Util::get_random_bytes($bs);
         $pad .= substr $pad, -2, 2;
         $enc->{ciphertext} = $cipher->encrypt($pad);
         $cipher->sync unless $enc->{is_mdc};
