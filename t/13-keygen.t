@@ -1,5 +1,5 @@
 use strict;
-use Test::More tests => 28;
+use Test::More tests => 29;
 
 use Crypt::OpenPGP;
 use Crypt::OpenPGP::Message;
@@ -49,4 +49,23 @@ for my $type ( qw( RSA DSA ) ) {
 
     is $pieces[0]->key_id, $sec->key->key_id,
         'serialized public key_id matches secret key_id';
+}
+
+{
+    *Crypt::RSA::Key::generate = sub {
+        my ($self, %params) = @_;
+        return $self->error("d is too small. Regenerate.");
+    };
+
+    my($pub, $sec) = Crypt::OpenPGP::Key->keygen(
+        'RSA',
+        Size    => $bits,
+        Version => 4,
+    );
+
+    is(
+        Crypt::OpenPGP::Key->errstr,
+        "Key generation failed: d is too small. Regenerate.\n",
+        'RSA key generation error got propagated',
+    );
 }
