@@ -1,6 +1,6 @@
 Revision history for Perl module Crypt::OpenPGP
 
-1.08  2015-07-02
+1.09  2015-07-02
     - Require Digest::SHA instead of Digest::SHA1, RT#82316 (@bk2204).
 
 1.08  2014-11-20
