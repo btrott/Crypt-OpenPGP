@@ -1,8 +1,11 @@
 Revision history for Perl module Crypt::OpenPGP
 
+1.08  2015-07-02
+    - Require Digest::SHA instead of Digest::SHA1, RT#82316 (@bk2204).
+
 1.08  2014-11-20
     - Move distribution to Dist::Zilla.
-    - Require Alt::Crypt::RSA::BigInt instead of Crypt::RSA
+    - Require Alt::Crypt::RSA::BigInt instead of Crypt::RSA.
     - Apply a patch from RT#82314 (@bk2204, @kmx).
     - Add a test case from GH#7, yet to be fixed (@throughnothing).
 
