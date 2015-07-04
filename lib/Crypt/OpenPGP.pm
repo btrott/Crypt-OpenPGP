@@ -79,11 +79,11 @@ $Crypt::OpenPGP::Globals::Trim_trailing_ws = 1;
         },
 
         GnuPG => {
-              'sign'    => { Digest => 'RIPEMD160', Version => 4 },
+              'sign'    => { Digest => 'SHA256', Version => 4 },
               'encrypt' => { Cipher => 'Rijndael', Compress => 'Zlib',
                              MDC => 1 },
-              'keygen'  => { Type => 'DSA', Cipher => 'Rijndael',
-                             Version => 4, Digest => 'RIPEMD160' },
+              'keygen'  => { Type => 'RSA', Cipher => 'Rijndael',
+                             Version => 4, Digest => 'SHA256' },
               'Config'  => [
                      $env->('GNUPGHOME', 'options'),
                      $home->( '.gnupg', 'options' ),
