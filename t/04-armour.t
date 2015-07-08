@@ -1,17 +1,17 @@
 use strict;
-use Test::More tests => 13;
+use Test::More tests => 18;
 
 use List::Util qw( max );
 
 use_ok 'Crypt::OpenPGP::Armour';
 
 my $obj = "FOO OBJECT";
-my %headers = ( foo => 'bar', baz => 'quux' );
-
 {
     # Test with a short input string.
 
     my $data = "foo bar bar";
+    my %headers = ( foo => 'bar', baz => 'quux' );
+
     my $armoured = Crypt::OpenPGP::Armour->armour(
         Data    => $data,
         Object  => $obj,
@@ -36,6 +36,8 @@ my %headers = ( foo => 'bar', baz => 'quux' );
     # Test with a longer input string.
 
     my $data = "foobarbaz" x 50;
+    my %headers = ( foo => 'bar', baz => 'quux' );
+
     my $armoured = Crypt::OpenPGP::Armour->armour(
         Data    => $data,
         Object  => $obj,
@@ -58,6 +60,7 @@ my %headers = ( foo => 'bar', baz => 'quux' );
 
 {
     my $data = "foobarbaz" x 50;
+    my %headers = ( foo => 'bar', baz => 'quux' );
 
     # Test that we get rid of \r (\cM) characters from armoured text
     # when calling unarmour.
@@ -71,4 +74,26 @@ my %headers = ( foo => 'bar', baz => 'quux' );
     $armoured = join "\r\n", split /\n/, $armoured;
     my $ref = Crypt::OpenPGP::Armour->unarmour( $armoured );
     is $data, $ref->{Data}, 'unarmour discards \r characters';
+}
+
+{
+    my $data = "foo bar baz quux";
+    my %headers = ( foo => 'bar', baz => 'quux' );
+
+    my $armoured = Crypt::OpenPGP::Armour->armour(
+        Data      => $data,
+        Object    => $obj,
+        Headers   => \%headers,
+        NoVersion => 1,
+    );
+    ok $armoured, 'armoured text is produced (no Version header)';
+    unlike $armoured, qr/^Version:\s/m, 'Version header is missing';
+
+    my $ref = Crypt::OpenPGP::Armour->unarmour( $armoured );
+    is $ref->{Data}, $data, 'unarmour produces original text';
+    is $ref->{Object}, "PGP $obj", 'Object is defined properly';
+    is_deeply $ref->{Headers}, {
+        foo     => $headers{foo},
+        baz     => $headers{baz},
+    }, 'Headers contains our headers, no Version';
 }

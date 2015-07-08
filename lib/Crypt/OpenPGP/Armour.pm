@@ -12,7 +12,8 @@ sub armour {
     my $data = $param{Data} or
         return $class->error("No Data to armour");
     my $headers = $param{Headers} || {};
-    $headers->{Version} = Crypt::OpenPGP->version_string;
+    $headers->{Version} = Crypt::OpenPGP->version_string
+        unless $param{NoVersion};
     my $head = join "\n", map { "$_: $headers->{$_}" } keys %$headers;
     my $object = $param{Object} || 'MESSAGE';
     (my $sdata = encode_base64($data, '')) =~ s!(.{1,64})!$1\n!g;
