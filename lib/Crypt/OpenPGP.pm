@@ -529,7 +529,9 @@ sub encrypt {
         } else {
             $s2k = Crypt::OpenPGP::S2k->new('Salt_Iter');
         }
-        my $keysize = Crypt::OpenPGP::Cipher->new($sym_alg)->keysize;
+        my $cipher = Crypt::OpenPGP::Cipher->new($sym_alg) or
+            return $pgp->error( Crypt::OpenPGP::Cipher->errstr );
+        my $keysize = $cipher->keysize;
         $key_data = $s2k->generate($pass, $keysize);
         push @sym_keys, Crypt::OpenPGP::SKSessionKey->new(
                             Passphrase => $pass,

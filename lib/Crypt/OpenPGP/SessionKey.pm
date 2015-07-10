@@ -22,7 +22,9 @@ sub init {
     $key->{version} = 3;
     if ((my $cert = $param{Key}) && (my $sym_key = $param{SymKey})) {
         my $alg = $param{Cipher} || DEFAULT_CIPHER;
-        my $keysize = Crypt::OpenPGP::Cipher->new($alg)->keysize;
+        my $cipher = Crypt::OpenPGP::Cipher->new($alg) or
+            return (ref $key)->error( Crypt::OpenPGP::Cipher->errstr );
+        my $keysize = $cipher->keysize;
         $sym_key = substr $sym_key, 0, $keysize;
         my $pk = $cert->key->public_key;
         my $enc = $key->_encode($sym_key, $alg, $pk->bytesize) or
