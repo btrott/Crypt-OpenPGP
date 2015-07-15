@@ -29,7 +29,7 @@ sub encrypt {
     my $iv = $c->{iv};
     my $out = $c->{unused} || '';
     my $size = length $out;
-    while ($data) {
+    while ( $data ne '' ) {
         unless ($size) {
             $out = $c->{cipher}->encrypt($iv);
             $size = $c->{blocksize};
@@ -52,7 +52,7 @@ sub decrypt {
     my $iv = $c->{iv};
     my $out = $c->{unused} || '';
     my $size = length $out;
-    while ($data) {
+    while ( $data ne '' ) {
         unless ($size) {
             $out = $c->{cipher}->encrypt($iv);
             $size = $c->{blocksize};

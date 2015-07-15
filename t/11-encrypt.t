@@ -1,5 +1,5 @@
 use strict;
-use Test::More tests => 36;
+use Test::More tests => 38;
 
 use Crypt::OpenPGP;
 use Crypt::OpenPGP::Message;
@@ -70,6 +70,18 @@ isa_ok $pgp, 'Crypt::OpenPGP';
 {
     # Now test conventional encryption; might as well just
     # reuse the passphrase.
+    my $ct = $pgp->encrypt(
+        Passphrase => $pass,
+        Data       => $text,
+    );
+    ok $ct, 'ciphertext is defined';
+    my $pt = $pgp->decrypt( Data => $ct, Passphrase => $pass );
+    is $pt, $text, 'decrypting yields original text';
+}
+
+{
+    # Test trailing zeroes.
+    my $text = '123456780';
     my $ct = $pgp->encrypt(
         Passphrase => $pass,
         Data       => $text,

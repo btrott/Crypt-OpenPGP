@@ -3,8 +3,7 @@
 # see https://github.com/btrott/Crypt-OpenPGP/issues/7
 use strict;
 use warnings;
-use Test::More;
-plan skip_all => "FIXME";
+use Test::More tests => 9;
 
 use_ok 'Crypt::OpenPGP';
  
