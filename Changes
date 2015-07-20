@@ -1,5 +1,9 @@
 Revision history for Perl module Crypt::OpenPGP
 
+1.11  2015-07-20
+    - Check that Crypt::OpenPGP::Cipher->new succeeded, RT#14033.
+    - Fix GH#7, when false data was discarded (@Camspi).
+
 1.10  2015-07-06
     - Update GnuPG defaults (@bk2204).
     - Fix error propagation on generating RSA key (@niner).
