@@ -192,6 +192,11 @@ A reference to a hash containing key-value pairs, where the key is the
 name of the header and the value the header value. These headers
 are placed at the top of the encoded message in the form C<Header: Value>.
 
+=item * NoVersion
+
+Boolean flag; if true, then default Version header will not be added
+to the armour.
+
 =back
 
 =head2 Crypt::OpenPGP::Armour->unarmour($message)
