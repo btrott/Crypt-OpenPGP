@@ -1,5 +1,8 @@
 Revision history for Perl module Crypt::OpenPGP
 
+1.12  2015-08-16 CPAN Day release
+    - Add NoVersion parameter to CO::Armour->armour (GH#26)
+
 1.11  2015-07-20
     - Check that Crypt::OpenPGP::Cipher->new succeeded, RT#14033.
     - Fix GH#7, when false data was discarded (@Camspi).
